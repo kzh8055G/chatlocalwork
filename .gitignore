@@ -44,3 +44,8 @@ Thumbs.db
 *~
 
 .windows-runner/
+
+# .NET build output
+**/bin/
+**/obj/
+*.user
