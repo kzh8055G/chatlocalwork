@@ -8,4 +8,4 @@
 node runner.cjs --workspace-root C:\Users\...\chat_local_workspace --queue-dir C:\Users\...\chat_local_workspace\.windows-runner --config runner-config.json
 ```
 
-일반적으로 직접 실행하지 않고 `MCP-AutoStart\StartMCP.bat`이 자동 시작한다.
+일반적으로 직접 실행하지 않고 `scripts\windows\StartMCP.bat`이 자동 시작한다.

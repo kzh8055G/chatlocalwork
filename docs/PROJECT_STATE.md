@@ -44,24 +44,17 @@ PowerShell/cmd 기반 실행 경로는 폐기했다.
 - docs/ARCHITECTURE.md
 - docs/SECURITY.md
 - docs/TROUBLESHOOTING.md
-- /shared/MCP-AutoStart/StartMCP.cjs
+- scripts/windows/StartMCP.cjs
+- scripts/windows/StopMCP.cjs
 
-## 다음 검증
+## 현재 검증 상태
 
-새 코드는 작성 및 로컬 테스트까지 완료됐지만 현재 실행 중인 MCP 컨테이너는 이전 빌드일 수 있다.
-
-다음 활성화 시:
-
-1. StartMCP.bat 실행
-2. StartMCP.cjs가 정식 Windows Runner 자동 시작
-3. Docker workmachine 재빌드
-4. ChatGPT에서 MCP 도구 새로고침
-5. 새 windows_exec 스키마 확인
-6. windows_exec로 git.exe --version 실행
-7. windows_exec로 LocalMcpManager dotnet build 실행
-8. Avast 탐지 여부 확인
-
-성공하면 임시 WindowsRunnerTest.cjs / Start-WindowsRunner-Test.bat / .windows-runner-test 디렉터리를 삭제한다.
+- StartMCP/StopMCP 재시작 후 localwork 정상
+- Windows Runner를 통한 `git.exe --version` 정상
+- PC 재부팅 후 StartMCP 실행 및 localwork 복구 정상
+- Docker host port 충돌 시 사용 가능한 포트 자동 선택
+- Tailscale 서비스 및 클라이언트 자동 시작
+- 선택된 host port로 Tailscale Funnel 자동 구성
 
 ## 중요
 

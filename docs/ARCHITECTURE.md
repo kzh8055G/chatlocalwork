@@ -47,14 +47,14 @@ ChatGPT
 
 ## 주요 파일
 
-- src/windows-bridge.ts
+- src/windows-runner-tools.ts
   - MCP의 windows_exec 구현
   - 요청 JSON 생성 및 응답 대기
 - windows-runner/runner.cjs
   - Windows 호스트 프로세스 실행
 - windows-runner/runner-config.json
   - 실행 파일 allowlist / blocklist / timeout 설정
-- /shared/MCP-AutoStart/StartMCP.cjs
+- scripts/windows/StartMCP.cjs
   - Windows Runner, Docker, Tailscale Funnel 자동 시작
 - tunneling/docker-compose.yml
   - MCP 컨테이너에 동일한 /shared 큐 마운트

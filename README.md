@@ -67,7 +67,7 @@ Typical tasks include:
 - "Install Node.js packages and build the project."
 - "Upload a file, verify its hash, and move it into place."
 
-Internally, these actions are provided through 20 MCP tools for shell execution, long-running processes, and filesystem operations.
+Internally, these actions are provided through 21 MCP tools for shell execution, long-running processes, and filesystem operations.
 
 ## How it works
 
@@ -99,6 +99,7 @@ The MCP transport is stateless, but long-running command sessions are kept in me
 - `read_process`: Poll output using a cursor and inspect process termination state
 - `terminate_process`: Send `SIGINT`, `SIGTERM`, or `SIGKILL` to a managed process group
 - `list_processes`: List running or recently completed process sessions
+- `windows_exec`: Run an allowed Windows executable through the file-queue Windows Runner
 
 ### Filesystem
 
@@ -109,7 +110,7 @@ The MCP transport is stateless, but long-running command sessions are kept in me
 
 Relative paths are resolved from `MCP_DEFAULT_CWD`, while absolute paths and `~/...` paths are also allowed. Uploads and downloads use base64 chunk transfer with `nextOffset`.
 
-The server provides 20 tools in total. `remove_path` permanently deletes targets without using a trash folder, and `apply_patch` uses the host's `git apply --unsafe-paths`.
+The server provides 21 tools in total. `remove_path` permanently deletes targets without using a trash folder, and `apply_patch` uses the host's `git apply --unsafe-paths`.
 
 ### Tool safety and authentication metadata
 
@@ -342,14 +343,14 @@ npm run build
 The default tests use a real Streamable HTTP MCP client and cover:
 
 - Bearer authentication, stateless request processing, and request tracing headers
-- Success paths, failure paths, and input boundary cases for all 20 tools
+- Success paths, failure paths, and input boundary cases for all 21 tools
 - Interactive stdin, output pagination, timeouts, termination, and completed-process retention
 - UTF-8 character boundaries, strict base64 validation, file modes, and copy/move conflicts
 - Unified diff validation, application, reverse application, and 3-way application
 
 ### Full E2E verification against a running external MCP server
 
-From a separate source checkout with development dependencies installed, you can verify all 20 tools against a real HTTPS endpoint:
+From a separate source checkout with development dependencies installed, you can verify all 21 tools against a real HTTPS endpoint:
 
 ```bash
 MCP_E2E_URL='https://mcp.example.com/mcp' \
@@ -400,8 +401,12 @@ This verification executes real commands on the target server and creates, modif
 | `src/file-service.ts` | File reading, writing, transfer, and path operations |
 | `src/file-tools.ts` | Filesystem tools and input schemas |
 | `src/oauth.ts` | DCR, PKCE, token issuance/refresh/revocation, and approval UI |
+| `src/windows-runner-tools.ts` | `windows_exec` bridge to the Windows Runner queue |
+| `windows-runner/` | Windows direct-process runner and allowlist configuration |
+| `scripts/windows/` | Windows MCP start/stop automation for Docker, Runner, and Tailscale |
+| `tunneling/` | Docker workmachine and host-port configuration |
 | `deploy/` | systemd, environment-file, and Nginx examples |
-| `test/all-tools.integration.test.ts` | E2E tests for all 20 tools and external endpoints |
+| `test/all-tools.integration.test.ts` | E2E tests for all 21 tools and external endpoints |
 | `test/` | Configuration, file, process, MCP, and OAuth unit/integration tests |
 
 ## License
