@@ -5,6 +5,7 @@ import { registerExecTools } from "./exec-tools.js";
 import { FileService } from "./file-service.js";
 import { registerFileTools } from "./file-tools.js";
 import { ProcessManager } from "./process-manager.js";
+import { registerWindowsRunnerTools } from "./windows-runner-tools.js";
 
 export interface McpServices {
   processManager: ProcessManager;
@@ -48,5 +49,6 @@ export function createMcpServer(config: AppConfig, services: McpServices): McpSe
     services.fileService,
   );
   registerFileTools(server, config, services.fileService);
+  registerWindowsRunnerTools(server, config);
   return server;
 }

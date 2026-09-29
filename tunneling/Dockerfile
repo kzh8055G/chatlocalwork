@@ -3,8 +3,6 @@ FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TIMEZONE=UTC
-ARG COKACREMOTE_REPOSITORY=https://github.com/kstost/cokacremote.git
-ARG COKACREMOTE_REF=main
 
 ENV TZ=${TIMEZONE} \
     NODE_ENV=production \
@@ -35,15 +33,18 @@ RUN ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone --depth 1 --branch "${COKACREMOTE_REF}" \
-        "${COKACREMOTE_REPOSITORY}" /opt/cokacremote \
-    && cd /opt/cokacremote \
-    && npm ci --include=dev \
+COPY package.json package-lock.json /opt/cokacremote/
+RUN cd /opt/cokacremote \
+    && npm ci --include=dev
+
+COPY src /opt/cokacremote/src
+COPY tsconfig.json vitest.config.ts /opt/cokacremote/
+RUN cd /opt/cokacremote \
     && npm run build \
     && npm prune --omit=dev \
     && npm cache clean --force
 
-COPY templates/AGENTS.md /usr/local/share/workmachine/AGENTS.md
+COPY tunneling/templates/AGENTS.md /usr/local/share/workmachine/AGENTS.md
 
 RUN <<'SETUP'
 set -eu

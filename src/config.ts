@@ -26,6 +26,8 @@ export interface AppConfig {
   maxProcesses: number;
   maxFileChunkBytes: number;
   maxEditFileBytes: number;
+  windowsRunnerQueueDir: string;
+  windowsRunnerTimeoutMs: number;
 }
 
 function parseBoolean(value: string | undefined, fallback: boolean): boolean {
@@ -214,6 +216,16 @@ export function loadConfig(
       64 * 1024 * 1024,
       "MCP_MAX_EDIT_FILE_BYTES",
       4096,
+    ),
+    windowsRunnerQueueDir: path.resolve(
+      env.WINDOWS_RUNNER_QUEUE_DIR?.trim() || "/shared/.windows-runner",
+    ),
+    windowsRunnerTimeoutMs: parseInteger(
+      env.WINDOWS_RUNNER_TIMEOUT_MS,
+      120_000,
+      "WINDOWS_RUNNER_TIMEOUT_MS",
+      1_000,
+      60 * 60 * 1000,
     ),
   };
 }

@@ -1,0 +1,33 @@
+{
+  "allowedExecutables": [
+    "git.exe",
+    "dotnet.exe",
+    "cmake.exe",
+    "ninja.exe",
+    "msbuild.exe",
+    "cl.exe",
+    "docker.exe",
+    "tailscale.exe",
+    "taskkill.exe"
+  ],
+  "blockedExecutables": [
+    "powershell.exe",
+    "powershell",
+    "pwsh.exe",
+    "pwsh",
+    "cmd.exe",
+    "cmd",
+    "wscript.exe",
+    "wscript",
+    "cscript.exe",
+    "cscript",
+    "mshta.exe",
+    "mshta",
+    "rundll32.exe",
+    "rundll32",
+    "regsvr32.exe",
+    "regsvr32"
+  ],
+  "defaultTimeoutMs": 120000,
+  "maxOutputBytes": 1048576
+}

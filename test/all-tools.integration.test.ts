@@ -31,6 +31,7 @@ const ALL_TOOLS = [
   "stat_path",
   "terminate_process",
   "upload_file",
+  "windows_exec",
   "write_file",
   "write_stdin",
 ] as const;
@@ -57,6 +58,7 @@ const EXPECTED_ANNOTATIONS = {
   stat_path: [true, false, true, false],
   terminate_process: [false, true, false, false],
   upload_file: [false, true, true, false],
+  windows_exec: [false, true, false, true],
   write_file: [false, true, false, false],
   write_stdin: [false, true, false, true],
 } as const satisfies Record<ToolName, readonly [boolean, boolean, boolean, boolean]>;
@@ -837,7 +839,11 @@ describe.sequential("all registered MCP tools", () => {
     })).toMatchObject({ removed: true });
   }, 30_000);
 
-  it("exercises every published tool through MCP", () => {
+  it("exercises every published tool through MCP", async () => {
+    if (!exercised.has("windows_exec")) {
+      expect(await callError("windows_exec", { executable: "git.exe", args: ["--version"] }))
+        .toContain("Windows Runner is not ready");
+    }
     expect([...exercised].sort()).toEqual([...ALL_TOOLS]);
   });
 });
