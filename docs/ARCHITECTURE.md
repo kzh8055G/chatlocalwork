@@ -8,7 +8,7 @@
 
 ```text
 ChatGPT
-  -> cokacremote MCP (Docker)
+  -> localworkmcp MCP (Docker)
   -> /shared/.windows-runner/requests/<id>.json
   -> Windows Node Runner
   -> executable + args[] (shell:false)

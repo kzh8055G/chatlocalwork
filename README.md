@@ -1,17 +1,17 @@
-# cokacremote
+# LocalWorkMCP
 
-`cokacremote` lets ChatGPT or another MCP client work directly on a remote Linux server.
+`localworkmcp` lets ChatGPT or another MCP client work directly on a remote Linux server.
 
 In simple terms, it gives an AI client tools to do things you would normally do over SSH: run shell commands, inspect logs, edit files, install packages, build projects, and manage services.
 
-MCP stands for **Model Context Protocol**. It is a standard that lets an AI client call tools provided by another program. You do not need to understand the protocol internals to use `cokacremote`.
+MCP stands for **Model Context Protocol**. It is a standard that lets an AI client call tools provided by another program. You do not need to understand the protocol internals to use `localworkmcp`.
 
 ```text
 ChatGPT or another MCP client
             |
             | MCP over HTTPS
             v
-       cokacremote
+       localworkmcp
             |
             v
        Linux server
@@ -22,18 +22,18 @@ ChatGPT or another MCP client
        `- manage processes and services
 ```
 
-You can run `cokacremote` continuously on a VPS or EC2 instance and connect to it remotely over MCP Streamable HTTP.
+You can run `localworkmcp` continuously on a VPS or EC2 instance and connect to it remotely over MCP Streamable HTTP.
 
 > [!WARNING]
-> `cokacremote` is intentionally powerful. It has no sandbox, command allowlist, execution approval, or path restrictions. If the service runs as `root`, an authenticated MCP client can change or delete anything on the server. Use HTTPS, strong authentication, and only connect trusted clients.
+> `localworkmcp` is intentionally powerful. It has no sandbox, command allowlist, execution approval, or path restrictions. If the service runs as `root`, an authenticated MCP client can change or delete anything on the server. Use HTTPS, strong authentication, and only connect trusted clients.
 
 ## Quick start
 
 If you already have a Linux server and Node.js 22+, the shortest local test is:
 
 ```bash
-git clone https://github.com/kstost/cokacremote.git
-cd cokacremote
+git clone https://github.com/kzh8055G/localworkmcp.git
+cd localworkmcp
 npm install
 npm run build
 
@@ -71,10 +71,10 @@ Internally, these actions are provided through 21 MCP tools for shell execution,
 
 ## How it works
 
-With `cokacremote`:
+With `localworkmcp`:
 
 1. An MCP client sends an MCP request over HTTPS.
-2. `cokacremote` checks authentication.
+2. `localworkmcp` checks authentication.
 3. It runs the requested tool directly on the host server.
 4. The command output or file-operation result is returned to the client.
 
@@ -303,7 +303,7 @@ Example healthy response:
 ```json
 {
   "status": "ok",
-  "service": "cokacremote",
+  "service": "localworkmcp",
   "version": "0.1.0",
   "transportMode": "stateless-json",
   "activeMcpSessions": 0,
@@ -355,11 +355,11 @@ From a separate source checkout with development dependencies installed, you can
 ```bash
 MCP_E2E_URL='https://mcp.example.com/mcp' \
 MCP_E2E_TOKEN='<bearer-token>' \
-MCP_E2E_ROOT='/tmp/cokacremote-tools-e2e-manual' \
+MCP_E2E_ROOT='/tmp/localworkmcp-tools-e2e-manual' \
 npx vitest run test/all-tools.integration.test.ts
 ```
 
-This verification executes real commands on the target server and creates, modifies, and deletes test files. For safety, `MCP_E2E_ROOT` must match the `/tmp/cokacremote-tools-e2e-*` pattern. The test uses only that isolated directory and attempts to clean it afterward. Do not point it at a directory containing production data, and check whether the directory remains after a failed or interrupted test. Running `npm ci` inside the production installation directory may alter its production-only dependency layout, so run tests from a separate checkout instead.
+This verification executes real commands on the target server and creates, modifies, and deletes test files. For safety, `MCP_E2E_ROOT` must match the `/tmp/localworkmcp-tools-e2e-*` pattern. The test uses only that isolated directory and attempts to clean it afterward. Do not point it at a directory containing production data, and check whether the directory remains after a failed or interrupted test. Running `npm ci` inside the production installation directory may alter its production-only dependency layout, so run tests from a separate checkout instead.
 
 ## Key environment variables
 

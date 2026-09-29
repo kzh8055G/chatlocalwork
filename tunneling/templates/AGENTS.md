@@ -13,7 +13,7 @@
 - Public base URL: `{{PUBLIC_BASE_URL}}`
 - Public MCP endpoint: `{{PUBLIC_MCP_URL}}`
 - Tailscale Funnel forwards public requests to the Windows host port selected by `StartMCP.bat`, which maps to container port `2999`.
-- Nginx forwards the protected cokacremote paths, including `/mcp`, to `http://127.0.0.1:3000`.
+- Nginx forwards the protected LocalWorkMCP paths, including `/mcp`, to `http://127.0.0.1:3000`.
 
 ## Instruction Scope
 
@@ -23,14 +23,14 @@
 
 ## Reserved Workmachine Resources
 
-The following resources belong to the workmachine infrastructure and cokacremote. During unrelated application development, never reuse, overwrite, remove, stop, redirect, or otherwise interfere with them:
+The following resources belong to the workmachine infrastructure and LocalWorkMCP. During unrelated application development, never reuse, overwrite, remove, stop, redirect, or otherwise interfere with them:
 
 - TCP port `2999`: Nginx gateway
-- TCP port `3000`: cokacremote MCP server
+- TCP port `3000`: LocalWorkMCP server
 - `/opt/cokacremote`
 - `/var/lib/cokacremote`
 - `/etc/nginx/routes.d/10-cokacremote.conf`
-- Nginx and cokacremote Supervisor processes
+- Nginx and LocalWorkMCP Supervisor processes
 - `/mcp`
 - `/health`
 - `/.well-known/*`
@@ -39,7 +39,7 @@ The following resources belong to the workmachine infrastructure and cokacremote
 - `/register`
 - `/revoke`
 
-Only modify these resources when the user explicitly requests maintenance of workmachine or cokacremote.
+Only modify these resources when the user explicitly requests maintenance of workmachine or LocalWorkMCP.
 
 ## Application Services
 

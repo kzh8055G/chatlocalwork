@@ -1,6 +1,8 @@
 # workmachine Docker setup
 
-`workmachine` runs the cokacremote MCP server in Docker and mounts the host workspace at `/shared`.
+`workmachine` runs the LocalWorkMCP server in Docker and mounts the host workspace at `/shared`.
+
+> Compatibility note: existing Docker project, volume, and internal state paths still use the historical `cokacremote` identifier so upgrades keep the current OAuth state and running environment. These are runtime compatibility identifiers, not the LocalWorkMCP project name.
 
 ## Windows recommended flow
 

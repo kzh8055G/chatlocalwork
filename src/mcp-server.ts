@@ -32,7 +32,7 @@ export function createServices(config: AppConfig): McpServices {
 export function createMcpServer(config: AppConfig, services: McpServices): McpServer {
   const server = new McpServer(
     {
-      name: "cokacremote",
+      name: "localworkmcp",
       version: "0.1.0",
     },
     {

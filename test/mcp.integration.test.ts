@@ -97,7 +97,7 @@ describe("remote development MCP server", () => {
     try {
       expect(transport.sessionId).toBeUndefined();
       expect(client.getServerVersion()).toMatchObject({
-        name: "cokacremote",
+        name: "localworkmcp",
         version: "0.1.0",
       });
       const tools = await client.listTools();

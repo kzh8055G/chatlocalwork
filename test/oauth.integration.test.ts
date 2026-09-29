@@ -96,7 +96,7 @@ describe("OAuth 2.1 MCP authorization", () => {
         resource: resourceUrl,
         authorization_servers: [`${baseUrl}/`],
         scopes_supported: ["mcp:tools"],
-        resource_name: "cokacremote",
+        resource_name: "localworkmcp",
       });
     }
 

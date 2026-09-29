@@ -2,7 +2,7 @@
 
 ## 목표
 
-ChatGPT 일반 채팅에서 cokacremote MCP를 통해 Windows 호스트의 개발 도구를 직접 실행한다.
+ChatGPT 일반 채팅에서 localworkmcp MCP를 통해 Windows 호스트의 개발 도구를 직접 실행한다.
 
 ## 확정된 실행 구조
 

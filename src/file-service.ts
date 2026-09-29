@@ -594,7 +594,7 @@ export class FileService {
         await lstat(destination);
         destinationBackup = path.join(
           path.dirname(destination),
-          `.cokacremote-move-backup-${randomUUID()}`,
+          `.localworkmcp-move-backup-${randomUUID()}`,
         );
         await rename(destination, destinationBackup);
       } catch (error) {

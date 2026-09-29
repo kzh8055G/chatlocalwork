@@ -76,9 +76,9 @@ function externalRoot(): string | undefined {
   if (!value) {
     return undefined;
   }
-  if (!/^\/tmp\/cokacremote-tools-e2e-[A-Za-z0-9._-]+$/.test(value)) {
+  if (!/^\/tmp\/localworkmcp-tools-e2e-[A-Za-z0-9._-]+$/.test(value)) {
     throw new Error(
-      "MCP_E2E_ROOT must be an isolated /tmp/cokacremote-tools-e2e-* path",
+      "MCP_E2E_ROOT must be an isolated /tmp/localworkmcp-tools-e2e-* path",
     );
   }
   return value;
@@ -130,10 +130,10 @@ describe.sequential("all registered MCP tools", () => {
       if (!authToken) {
         throw new Error("MCP_E2E_TOKEN is required with MCP_E2E_URL");
       }
-      testRoot = externalRoot() ?? `/tmp/cokacremote-tools-e2e-${randomUUID()}`;
+      testRoot = externalRoot() ?? `/tmp/localworkmcp-tools-e2e-${randomUUID()}`;
       endpoint = new URL(externalUrl);
     } else {
-      localDirectory = await mkdtemp(path.join(os.tmpdir(), "cokacremote-all-tools-"));
+      localDirectory = await mkdtemp(path.join(os.tmpdir(), "localworkmcp-all-tools-"));
       testRoot = path.join(localDirectory, "tool-root");
       authToken = "all-tools-test-secret";
       const config = loadConfig(
