@@ -84,7 +84,7 @@ internal sealed class MainForm : Form
 
         Text = "ChatLocalWork Manager";
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(900, 640);
+        MinimumSize = new Size(780, 640);
         Size = new Size(980, 720);
         Font = new Font("Segoe UI", 9F);
         AutoScaleMode = AutoScaleMode.Dpi;
@@ -139,12 +139,22 @@ internal sealed class MainForm : Form
         };
 
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 238));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        var header = new Panel { Dock = DockStyle.Fill };
+        var header = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            Margin = Padding.Empty,
+        };
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 68));
+        header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32));
+
+        var titlePanel = new Panel { Dock = DockStyle.Fill };
 
         var title = new Label
         {
@@ -162,24 +172,34 @@ internal sealed class MainForm : Form
             Location = new Point(2, 40),
         };
 
-        header.Controls.Add(title);
-        header.Controls.Add(subtitle);
+        titlePanel.Controls.Add(title);
+        titlePanel.Controls.Add(subtitle);
 
-        var actions = new TableLayoutPanel
+        var summary = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 2,
-            RowCount = 1,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = Padding.Empty,
         };
-        actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 68));
-        actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32));
+        summary.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+        summary.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+        summary.Controls.Add(_overallLabel, 0, 0);
+        summary.Controls.Add(_lastCheckedLabel, 0, 1);
 
-        var buttons = new FlowLayoutPanel
+        header.Controls.Add(titlePanel, 0, 0);
+        header.Controls.Add(summary, 1, 0);
+
+        var actions = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = false,
+            WrapContents = true,
+            AutoScroll = true,
+            Padding = new Padding(0, 3, 0, 0),
         };
+
+        var buttons = actions;
 
         foreach (var button in new[]
                  {
@@ -196,20 +216,6 @@ internal sealed class MainForm : Form
             buttons.Controls.Add(button);
         }
 
-        var summary = new TableLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            ColumnCount = 1,
-            RowCount = 2,
-        };
-        summary.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
-        summary.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
-        summary.Controls.Add(_overallLabel, 0, 0);
-        summary.Controls.Add(_lastCheckedLabel, 0, 1);
-
-        actions.Controls.Add(buttons, 0, 0);
-        actions.Controls.Add(summary, 1, 0);
-
         var operationGroup = new GroupBox
         {
             Text = "작업 상태",
@@ -223,8 +229,8 @@ internal sealed class MainForm : Form
             ColumnCount = 1,
             RowCount = 2,
         };
-        operationTable.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
-        operationTable.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
+        operationTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        operationTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         operationTable.Controls.Add(_operationStateLabel, 0, 0);
         operationTable.Controls.Add(_operationDetailLabel, 0, 1);
         operationGroup.Controls.Add(operationTable);
