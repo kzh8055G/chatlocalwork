@@ -75,14 +75,18 @@ export function registerWindowsRunnerTools(server: McpServer, config: AppConfig)
             platform?: string;
             runtime?: string;
             executionMode?: string;
+            heartbeatAt?: string;
           };
+          const heartbeatMs = Date.parse(ready.heartbeatAt ?? "");
+          const heartbeatFresh = Number.isFinite(heartbeatMs) && Date.now() - heartbeatMs <= 10_000;
           if (
             ready.ok !== true ||
             ready.platform !== "win32" ||
             ready.runtime !== "node" ||
-            ready.executionMode !== "direct-process"
+            ready.executionMode !== "direct-process" ||
+            !heartbeatFresh
           ) {
-            throw new Error("invalid ready state");
+            throw new Error("invalid or stale ready state");
           }
         } catch {
           throw new Error(
