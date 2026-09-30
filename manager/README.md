@@ -21,6 +21,8 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 - 자동 상태 새로고침 중복 방지
 - 전체 상태/마지막 확인 시각 표시
 - Start/Stop 성공·실패·소요 시간 요약
+- Start/Stop 현재 단계 실시간 표시
+- 실패 시 실패 단계와 핵심 오류를 작업 상태 영역에 표시
 - stale Runner ready.json 감지
 - ChatLocalWork 프로젝트 폴더 열기
 

@@ -55,8 +55,26 @@ internal sealed class MainForm : Form
         Text = "마지막 확인: -",
     };
 
+    private readonly Label _operationStateLabel = new()
+    {
+        Dock = DockStyle.Fill,
+        TextAlign = ContentAlignment.MiddleLeft,
+        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+        Text = "대기 중",
+    };
+
+    private readonly Label _operationDetailLabel = new()
+    {
+        Dock = DockStyle.Fill,
+        TextAlign = ContentAlignment.MiddleLeft,
+        ForeColor = SystemColors.GrayText,
+        AutoEllipsis = true,
+        Text = "아직 실행된 Start/Stop 작업이 없습니다.",
+    };
+
     private bool _busy;
     private bool _refreshing;
+    private string? _currentLifecycleStage;
 
     public MainForm(AppPaths paths)
     {
@@ -116,12 +134,13 @@ internal sealed class MainForm : Form
         {
             Dock = DockStyle.Fill,
             ColumnCount = 1,
-            RowCount = 4,
+            RowCount = 5,
             Padding = new Padding(18),
         };
 
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 238));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
@@ -190,6 +209,25 @@ internal sealed class MainForm : Form
 
         actions.Controls.Add(buttons, 0, 0);
         actions.Controls.Add(summary, 1, 0);
+
+        var operationGroup = new GroupBox
+        {
+            Text = "작업 상태",
+            Dock = DockStyle.Fill,
+            Padding = new Padding(10, 8, 10, 8),
+        };
+
+        var operationTable = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+        };
+        operationTable.RowStyles.Add(new RowStyle(SizeType.Percent, 48));
+        operationTable.RowStyles.Add(new RowStyle(SizeType.Percent, 52));
+        operationTable.Controls.Add(_operationStateLabel, 0, 0);
+        operationTable.Controls.Add(_operationDetailLabel, 0, 1);
+        operationGroup.Controls.Add(operationTable);
 
         var statusGroup = new GroupBox
         {
@@ -262,8 +300,9 @@ internal sealed class MainForm : Form
 
         root.Controls.Add(header, 0, 0);
         root.Controls.Add(actions, 0, 1);
-        root.Controls.Add(statusGroup, 0, 2);
-        root.Controls.Add(logGroup, 0, 3);
+        root.Controls.Add(operationGroup, 0, 2);
+        root.Controls.Add(statusGroup, 0, 3);
+        root.Controls.Add(logGroup, 0, 4);
 
         return root;
     }
@@ -288,8 +327,13 @@ internal sealed class MainForm : Form
 
         var operation = start ? "START" : "STOP";
         var stopwatch = Stopwatch.StartNew();
+        _currentLifecycleStage = null;
 
         SetBusy(true, operation);
+        SetOperationStatus(
+            $"{operation} 진행 중",
+            "초기화 중...",
+            Color.SteelBlue);
         _statusTimer.Stop();
 
         AppendLog(string.Empty);
@@ -297,31 +341,53 @@ internal sealed class MainForm : Form
 
         try
         {
+            void HandleLifecycleOutput(string line)
+            {
+                AppendLog(line);
+                ProcessLifecycleOutput(operation, line);
+            }
+
             var result = start
-                ? await _lifecycleService.StartAsync(AppendLog)
-                : await _lifecycleService.StopAsync(AppendLog);
+                ? await _lifecycleService.StartAsync(HandleLifecycleOutput)
+                : await _lifecycleService.StopAsync(HandleLifecycleOutput);
 
             stopwatch.Stop();
 
             if (result.Success)
             {
+                var detail = _currentLifecycleStage is null
+                    ? $"완료 · {FormatDuration(stopwatch.Elapsed)}"
+                    : $"마지막 단계: {_currentLifecycleStage} · {FormatDuration(stopwatch.Elapsed)}";
+                SetOperationStatus($"{operation} 성공", detail, Color.ForestGreen);
                 AppendManagerLog($"{operation} 완료 · {FormatDuration(stopwatch.Elapsed)}");
             }
             else if (result.TimedOut)
             {
-                AppendManagerLog($"{operation} 시간 초과 · {FormatDuration(stopwatch.Elapsed)}");
+                var stage = _currentLifecycleStage ?? "알 수 없음";
+                SetOperationStatus(
+                    $"{operation} 시간 초과 · 단계: {stage}",
+                    $"제한 시간을 초과했습니다. · {FormatDuration(stopwatch.Elapsed)}",
+                    Color.DarkOrange);
+                AppendManagerLog($"{operation} 시간 초과 · 단계={stage} · {FormatDuration(stopwatch.Elapsed)}");
             }
             else
             {
                 var reason = GetFailureSummary(result);
+                var stage = _currentLifecycleStage ?? "알 수 없음";
+                var detail = string.IsNullOrWhiteSpace(reason)
+                    ? $"ExitCode={result.ExitCode}"
+                    : $"ExitCode={result.ExitCode} · {reason}";
+                SetOperationStatus($"{operation} 실패 · 단계: {stage}", detail, Color.Firebrick);
                 var suffix = string.IsNullOrWhiteSpace(reason) ? string.Empty : $" · {reason}";
-                AppendManagerLog($"{operation} 실패 · ExitCode={result.ExitCode}{suffix}");
+                AppendManagerLog($"{operation} 실패 · 단계={stage} · ExitCode={result.ExitCode}{suffix}");
             }
         }
         catch (Exception ex)
         {
             stopwatch.Stop();
-            AppendManagerLog($"{operation} ERROR · {ex.Message}");
+            var stage = _currentLifecycleStage ?? "초기화";
+            SetOperationStatus($"{operation} 오류 · 단계: {stage}", ex.Message, Color.Firebrick);
+            AppendManagerLog($"{operation} ERROR · 단계={stage} · {ex.Message}");
             MessageBox.Show(
                 ex.Message,
                 "ChatLocalWork Manager",
@@ -497,6 +563,64 @@ internal sealed class MainForm : Form
                 : "작업 중: STOPPING...";
             _overallLabel.ForeColor = Color.SteelBlue;
         }
+    }
+
+    private void ProcessLifecycleOutput(string operation, string line)
+    {
+        if (InvokeRequired)
+        {
+            BeginInvoke(() => ProcessLifecycleOutput(operation, line));
+            return;
+        }
+
+        var trimmed = line.Trim();
+        if (trimmed.StartsWith("==>", StringComparison.Ordinal))
+        {
+            var stage = trimmed[3..].Trim();
+            if (stage.Length == 0)
+            {
+                return;
+            }
+
+            _currentLifecycleStage = stage;
+            SetOperationStatus(
+                $"{operation} 진행 중 · 단계: {stage}",
+                "스크립트 작업을 수행하고 있습니다.",
+                Color.SteelBlue);
+            return;
+        }
+
+        if (trimmed.StartsWith("[ERROR]", StringComparison.OrdinalIgnoreCase))
+        {
+            var message = trimmed["[ERROR]".Length..].Trim();
+            SetOperationStatus(
+                $"{operation} 오류 · 단계: {_currentLifecycleStage ?? "알 수 없음"}",
+                message,
+                Color.Firebrick);
+        }
+        else if (trimmed.StartsWith("[WARN]", StringComparison.OrdinalIgnoreCase))
+        {
+            _operationDetailLabel.Text = trimmed;
+            _operationDetailLabel.ForeColor = Color.DarkOrange;
+        }
+    }
+
+    private void SetOperationStatus(string state, string detail, Color stateColor)
+    {
+        if (InvokeRequired)
+        {
+            BeginInvoke(() => SetOperationStatus(state, detail, stateColor));
+            return;
+        }
+
+        _operationStateLabel.Text = state;
+        _operationStateLabel.ForeColor = stateColor;
+        _operationDetailLabel.Text = detail;
+        _operationDetailLabel.ForeColor = stateColor == Color.Firebrick
+            ? Color.Firebrick
+            : stateColor == Color.DarkOrange
+                ? Color.DarkOrange
+                : SystemColors.GrayText;
     }
 
     private void AppendManagerLog(string text)
