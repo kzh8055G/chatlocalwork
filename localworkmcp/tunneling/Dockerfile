@@ -1,4 +1,5 @@
 # syntax=docker/dockerfile:1
+# Keep this file LF-only because the heredoc RUN block executes in Linux bash.
 FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
