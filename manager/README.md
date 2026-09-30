@@ -25,6 +25,9 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 - Start/Stop 현재 단계 실시간 표시
 - 실패 시 실패 단계와 핵심 오류를 작업 상태 영역에 표시
 - stale Runner ready.json 감지
+- `Manager 종료 시 MCP도 종료` 옵션(기본 ON, LocalAppData에 저장)
+- 종료 시 ChatLocalWork가 실행 중이면 StopMCP 자동 실행
+- 자동 Stop 실패 시 `다시 시도 / Manager만 종료 / 취소` 선택 제공
 - ChatLocalWork 프로젝트 폴더 열기
 
 ## 사용 스크립트

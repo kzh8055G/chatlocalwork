@@ -18,7 +18,9 @@ internal sealed class AppPaths
             throw new InvalidOperationException("LOCALAPPDATA could not be resolved.");
         }
 
-        RunnerQueueDirectory = Path.Combine(localAppData, "ChatLocalWork", "runtime", "windows-runner");
+        ChatLocalWorkDataDirectory = Path.Combine(localAppData, "ChatLocalWork");
+        ManagerSettingsFile = Path.Combine(ChatLocalWorkDataDirectory, "manager-settings.json");
+        RunnerQueueDirectory = Path.Combine(ChatLocalWorkDataDirectory, "runtime", "windows-runner");
         RunnerReadyFile = Path.Combine(RunnerQueueDirectory, "state", "ready.json");
         RunnerLogFile = Path.Combine(RunnerQueueDirectory, "logs", "runner.log");
         LauncherLogFile = Path.Combine(RunnerQueueDirectory, "logs", "launcher.log");
@@ -30,6 +32,8 @@ internal sealed class AppPaths
     public string WorkspaceRoot { get; }
     public string StartScript { get; }
     public string StopScript { get; }
+    public string ChatLocalWorkDataDirectory { get; }
+    public string ManagerSettingsFile { get; }
     public string RunnerQueueDirectory { get; }
     public string RunnerReadyFile { get; }
     public string RunnerLogFile { get; }

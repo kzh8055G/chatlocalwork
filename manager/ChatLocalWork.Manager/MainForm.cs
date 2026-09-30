@@ -28,6 +28,13 @@ internal sealed class MainForm : Form
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
     private readonly Button _openRepositoryButton = new() { Text = "프로젝트 폴더", AutoSize = true };
     private readonly Button _clearLogButton = new() { Text = "로그 지우기", AutoSize = true };
+    private readonly CheckBox _stopMcpOnExitCheckBox = new()
+    {
+        Text = "Manager 종료 시 MCP도 종료",
+        AutoSize = true,
+        Checked = true,
+        Margin = new Padding(12, 8, 0, 0),
+    };
 
     private readonly RichTextBox _logBox = new()
     {
@@ -76,6 +83,8 @@ internal sealed class MainForm : Form
     private bool _refreshing;
     private bool _lifecycleStatusRefreshPending;
     private bool _lifecycleStatusRefreshWorkerRunning;
+    private bool _allowClose;
+    private bool _exitStopInProgress;
     private string? _currentLifecycleStage;
 
     public MainForm(AppPaths paths)
@@ -83,6 +92,9 @@ internal sealed class MainForm : Form
         _paths = paths;
         _lifecycleService = new MpcLifecycleService(paths);
         _statusService = new StatusService(paths);
+
+        var settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile);
+        _stopMcpOnExitCheckBox.Checked = settings.StopMcpOnExit;
 
         Text = "ChatLocalWork Manager";
         StartPosition = FormStartPosition.CenterScreen;
@@ -99,6 +111,7 @@ internal sealed class MainForm : Form
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();
         _clearLogButton.Click += (_, _) => _logBox.Clear();
+        _stopMcpOnExitCheckBox.CheckedChanged += (_, _) => SaveManagerSettings();
 
         _statusTimer = new System.Windows.Forms.Timer { Interval = 5000 };
         _statusTimer.Tick += async (_, _) => await RefreshStatusAsync();
@@ -112,21 +125,7 @@ internal sealed class MainForm : Form
             _statusTimer.Start();
         };
 
-        FormClosing += (_, e) =>
-        {
-            if (!_busy)
-            {
-                return;
-            }
-
-            e.Cancel = true;
-            MessageBox.Show(
-                "Start/Stop 작업이 진행 중입니다. 작업이 완료된 뒤 Manager를 종료해 주세요.",
-                "ChatLocalWork Manager",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-        };
-
+        FormClosing += MainForm_FormClosing;
         FormClosed += (_, _) => _statusTimer.Dispose();
     }
 
@@ -217,6 +216,7 @@ internal sealed class MainForm : Form
             button.Padding = new Padding(7, 0, 7, 0);
             buttons.Controls.Add(button);
         }
+        buttons.Controls.Add(_stopMcpOnExitCheckBox);
 
         var operationGroup = new GroupBox
         {
@@ -485,6 +485,156 @@ internal sealed class MainForm : Form
             ? $"전체 상태: 확인 필요 · {readyCount}/{statuses.Count} READY"
             : $"전체 상태: PARTIAL · {readyCount}/{statuses.Count} READY";
         _overallLabel.ForeColor = needsAttention ? Color.DarkOrange : Color.SteelBlue;
+    }
+
+    private async void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
+    {
+        if (_allowClose)
+        {
+            return;
+        }
+
+        if (_exitStopInProgress)
+        {
+            e.Cancel = true;
+            return;
+        }
+
+        if (_busy)
+        {
+            e.Cancel = true;
+            MessageBox.Show(
+                "Start/Stop 작업이 진행 중입니다. 작업이 완료된 뒤 Manager를 종료해 주세요.",
+                "ChatLocalWork Manager",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        if (!_stopMcpOnExitCheckBox.Checked)
+        {
+            _allowClose = true;
+            return;
+        }
+
+        e.Cancel = true;
+        _exitStopInProgress = true;
+        _statusTimer.Stop();
+
+        try
+        {
+            var shouldStop = await IsChatLocalWorkRunningAsync();
+            if (!shouldStop)
+            {
+                _allowClose = true;
+                BeginInvoke(Close);
+                return;
+            }
+
+            while (true)
+            {
+                SetBusy(true, "STOP");
+                SetOperationStatus(
+                    "Manager 종료 중 · MCP 정리",
+                    "StopMCP를 실행하고 있습니다...",
+                    Color.SteelBlue);
+                AppendManagerLog("Manager 종료 요청 · MCP 자동 종료 시작");
+
+                ProcessResult result;
+                try
+                {
+                    void HandleLifecycleOutput(string line)
+                    {
+                        AppendLog(line);
+                        ProcessLifecycleOutput("STOP", line);
+                    }
+
+                    result = await _lifecycleService.StopAsync(HandleLifecycleOutput);
+                }
+                catch (Exception ex)
+                {
+                    result = new ProcessResult(-1, string.Empty, ex.Message, false);
+                }
+
+                if (result.Success)
+                {
+                    AppendManagerLog("MCP 자동 종료 완료 · Manager를 종료합니다.");
+                    _allowClose = true;
+                    BeginInvoke(Close);
+                    return;
+                }
+
+                var reason = result.TimedOut
+                    ? "StopMCP 실행 시간이 초과되었습니다."
+                    : GetFailureSummary(result);
+                if (string.IsNullOrWhiteSpace(reason))
+                {
+                    reason = $"ExitCode={result.ExitCode}";
+                }
+
+                SetBusy(false);
+                SetOperationStatus("MCP 자동 종료 실패", reason, Color.Firebrick);
+
+                using var dialog = new StopOnExitFailureDialog(reason);
+                dialog.ShowDialog(this);
+
+                if (dialog.Choice == StopOnExitFailureChoice.Retry)
+                {
+                    continue;
+                }
+
+                if (dialog.Choice == StopOnExitFailureChoice.CloseManagerOnly)
+                {
+                    AppendManagerLog("MCP는 유지하고 Manager만 종료합니다.");
+                    _allowClose = true;
+                    BeginInvoke(Close);
+                    return;
+                }
+
+                AppendManagerLog("Manager 종료를 취소했습니다.");
+                return;
+            }
+        }
+        finally
+        {
+            _exitStopInProgress = false;
+            if (!_allowClose && !IsDisposed)
+            {
+                SetBusy(false);
+                _statusTimer.Start();
+                await RefreshStatusAsync();
+            }
+        }
+    }
+
+    private async Task<bool> IsChatLocalWorkRunningAsync()
+    {
+        try
+        {
+            var statuses = await _statusService.GetStatusAsync();
+            return statuses.Any(status =>
+                status.Name is "Windows Runner" or "Docker" or "Funnel" or "MCP"
+                && status.State != ComponentState.Stopped);
+        }
+        catch
+        {
+            // 상태 확인 자체가 실패하면 잔여 리소스가 있을 수 있으므로 Stop을 시도합니다.
+            return true;
+        }
+    }
+
+    private void SaveManagerSettings()
+    {
+        try
+        {
+            ManagerSettingsStore.Save(
+                _paths.ManagerSettingsFile,
+                new ManagerSettings(_stopMcpOnExitCheckBox.Checked));
+        }
+        catch (Exception ex)
+        {
+            AppendManagerLog($"설정 저장 실패 · {ex.Message}");
+        }
     }
 
     private void LoadRunnerLog()
