@@ -393,6 +393,10 @@ This verification executes real commands on the target server and creates, modif
 
 ## Project layout
 
+LocalWorkMCP is now the MCP-server component inside the parent ChatLocalWork repository.
+
+Paths in this table are relative to `ChatLocalWork/localworkmcp/` unless noted otherwise.
+
 | Path | Purpose |
 |---|---|
 | `src/http-server.ts` | Stateless Streamable HTTP, OAuth routing, and health endpoint |
@@ -402,12 +406,14 @@ This verification executes real commands on the target server and creates, modif
 | `src/file-tools.ts` | Filesystem tools and input schemas |
 | `src/oauth.ts` | DCR, PKCE, token issuance/refresh/revocation, and approval UI |
 | `src/windows-runner-tools.ts` | `windows_exec` bridge to the Windows Runner queue |
-| `windows-runner/` | Windows direct-process runner and allowlist configuration |
-| `scripts/windows/` | Windows MCP start/stop automation for Docker, Runner, and Tailscale |
 | `tunneling/` | Docker workmachine and host-port configuration |
 | `deploy/` | systemd, environment-file, and Nginx examples |
 | `test/all-tools.integration.test.ts` | E2E tests for all 21 tools and external endpoints |
 | `test/` | Configuration, file, process, MCP, and OAuth unit/integration tests |
+| `../windows-runner/` | Windows direct-process runner and allowlist configuration |
+| `../scripts/windows/` | Windows MCP start/stop automation for Docker, Runner, and Tailscale |
+| `../manager/ChatLocalWork.Manager/` | ChatLocalWork Windows management UI |
+| `../docs/` | Parent ChatLocalWork architecture, state, security, and troubleshooting docs |
 
 ## License
 

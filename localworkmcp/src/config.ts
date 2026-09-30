@@ -218,7 +218,7 @@ export function loadConfig(
       4096,
     ),
     windowsRunnerQueueDir: path.resolve(
-      env.WINDOWS_RUNNER_QUEUE_DIR?.trim() || "/shared/.windows-runner",
+      env.WINDOWS_RUNNER_QUEUE_DIR?.trim() || "/chatlocalwork-runtime/windows-runner",
     ),
     windowsRunnerTimeoutMs: parseInteger(
       env.WINDOWS_RUNNER_TIMEOUT_MS,

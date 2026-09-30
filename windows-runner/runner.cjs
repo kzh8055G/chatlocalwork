@@ -12,7 +12,11 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv);
 const workspaceRoot = path.resolve(args["workspace-root"] || path.resolve(__dirname, "..", ".."));
-const queueDir = path.resolve(args["queue-dir"] || path.join(workspaceRoot, ".windows-runner"));
+const localAppData = process.env.LOCALAPPDATA;
+const defaultQueueDir = localAppData
+  ? path.join(localAppData, "ChatLocalWork", "runtime", "windows-runner")
+  : path.join(workspaceRoot, ".windows-runner");
+const queueDir = path.resolve(args["queue-dir"] || defaultQueueDir);
 const configPath = path.resolve(args["config"] || path.join(__dirname, "runner-config.json"));
 const requestsDir = path.join(queueDir, "requests");
 const responsesDir = path.join(queueDir, "responses");

@@ -86,7 +86,7 @@ export function registerWindowsRunnerTools(server: McpServer, config: AppConfig)
           }
         } catch {
           throw new Error(
-            "Windows Runner is not ready. Start MCP with StartMCP.bat and verify .windows-runner/state/ready.json.",
+            "Windows Runner is not ready. Start MCP with StartMCP.bat and verify %LOCALAPPDATA%\\ChatLocalWork\\runtime\\windows-runner\\state\\ready.json.",
           );
         }
 

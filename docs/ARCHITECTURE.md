@@ -1,78 +1,207 @@
-# Windows Runner 아키텍처
+# ChatLocalWork 아키텍처
 
 ## 목적
 
-일반 ChatGPT 채팅의 MCP 도구가 Windows 호스트에서 Git, .NET, CMake 같은 개발 도구를 직접 실행할 수 있게 한다.
+일반 ChatGPT 채팅에서 Windows 로컬 개발 환경의 파일을 다루고 Git, .NET, CMake 같은 개발 도구를 직접 실행할 수 있게 한다.
 
-## 최종 구조
+ChatLocalWork는 하나의 기능이 아니라 다음 구성 요소를 묶는 상위 프로젝트다.
+
+- LocalWorkMCP
+- Windows Runner
+- ChatLocalWork Manager
+- Start/Stop 자동화
+- Docker + Tailscale Funnel 연결
+
+## 전체 요청 흐름
 
 ```text
 ChatGPT
-  -> localworkmcp MCP (Docker)
-  -> /shared/.windows-runner/requests/<id>.json
-  -> Windows Node Runner
-  -> executable + args[] (shell:false)
-  -> /shared/.windows-runner/responses/<id>.json
-  -> MCP
-  -> ChatGPT
+  │
+  │ HTTPS / MCP
+  ▼
+Tailscale Funnel
+  │
+  ▼
+Docker workmachine
+  │
+  ├─ Nginx :2999
+  │
+  └─ LocalWorkMCP :3000
+          │
+          │ windows_exec
+          ▼
+/chatlocalwork-runtime/windows-runner/requests/<id>.json
+          │
+          │ host bind mount
+          ▼
+%LOCALAPPDATA%\ChatLocalWork\runtime\windows-runner\requests\<id>.json
+          │
+          ▼
+Windows Runner
+          │
+          │ child_process.spawn(executable, args, { shell:false })
+          ▼
+Windows executable
+          │
+          ▼
+responses/<id>.json
+          │
+          ▼
+LocalWorkMCP
+          │
+          ▼
+ChatGPT
 ```
 
-## 기존 PowerShell Bridge를 폐기한 이유
+## 저장소 구조
 
-기존 방식은 MCP 요청을 Windows에서 PowerShell 프로세스로 전달했다. Avast가 이 실행 경로를 IDP.HELU.PSE91로 반복 탐지했다.
+```text
+ChatLocalWork/
+├─ localworkmcp/
+│  ├─ src/
+│  ├─ test/
+│  ├─ tunneling/
+│  ├─ deploy/
+│  ├─ package.json
+│  └─ README.md
+├─ manager/
+│  ├─ ChatLocalWork.Manager/
+│  └─ README.md
+├─ windows-runner/
+│  ├─ runner.cjs
+│  ├─ runner-config.json
+│  └─ README.md
+├─ scripts/
+│  └─ windows/
+│     ├─ StartMCP.bat
+│     ├─ StartMCP.cjs
+│     ├─ StopMCP.bat
+│     └─ StopMCP.cjs
+├─ docs/
+└─ README.md
+```
 
-검증 과정에서 PowerShell/cmd를 사용하지 않고 Node의 child_process.spawn(..., { shell:false })로 git.exe와 dotnet.exe를 직접 실행하면 Avast 탐지가 발생하지 않았다.
+## Windows Runner 런타임
 
-실제 LocalMcpManager 빌드에서도 다음 흐름을 검증했다.
+Runner 프로그램 자체와 런타임 상태는 분리한다.
 
-1. ChatGPT가 MCP를 통해 빌드 요청 생성
-2. Windows Runner가 dotnet.exe를 직접 실행
-3. 컴파일 오류 stdout 수집
-4. ChatGPT가 소스 수정
-5. 다시 빌드
-6. 경고 0 / 오류 0 확인
+소스:
 
-따라서 Windows 실행 경로는 direct-process 방식으로 통일한다.
+```text
+ChatLocalWork/windows-runner/
+```
 
-## 설계 원칙
+런타임:
 
-- PowerShell과 cmd.exe를 사용하지 않는다.
-- Windows Runner는 shell:false로만 실행한다.
-- MCP와 Runner 간 통신은 HTTP 포트가 아니라 공유 디렉터리 파일 큐를 사용한다.
-- 작업 디렉터리는 chat_local_workspace 내부로 제한한다.
-- 일반 실행 파일은 allowlist로 관리한다.
-- workspace 내부에서 빌드된 exe는 절대 경로로 실행할 수 있다.
-- timeout과 stdout/stderr 출력 크기 제한을 적용한다.
-- 요청마다 UUID를 사용한다.
+```text
+%LOCALAPPDATA%\ChatLocalWork\runtime\windows-runner/
+├─ state/
+│  └─ ready.json
+├─ logs/
+│  ├─ runner.log
+│  └─ launcher.log
+├─ requests/
+└─ responses/
+```
+
+Docker에는 다음 위치로 bind mount된다.
+
+```text
+/chatlocalwork-runtime/windows-runner
+```
+
+`ready.json`에는 현재 Runner PID, workspaceRoot, queueDir, runtime, executionMode 등이 기록된다.
+
+런타임 폴더는 소스나 백업 데이터가 아니다. MCP가 종료된 상태에서는 삭제 가능하며 다음 시작 시 재생성된다.
+
+## Windows workspace
+
+현재 Windows Runner의 workspaceRoot는 `chat_local_workspace`다.
+
+예:
+
+```text
+C:\Users\<user>\Documents\chat_local_workspace
+```
+
+일반 작업 디렉터리는 이 workspace 내부로 제한한다.
+
+Docker에서는 workspace 전체가 다음처럼 보인다.
+
+```text
+Windows: C:\Users\<user>\Documents\chat_local_workspace
+Docker : /shared
+```
+
+이 마운트는 프로젝트 파일 접근을 위한 것이고, Windows Runner queue는 별도의 LocalAppData mount를 사용한다.
+
+## Windows 실행 방식
+
+Windows Runner는 Node.js `child_process.spawn`으로 프로세스를 직접 실행한다.
+
+핵심 원칙:
+
+- `shell:false`
+- PowerShell/cmd를 중간 셸로 사용하지 않음
+- 일반 실행 파일은 allowlist 기반
+- 명시적 blocklist 적용
+- workdir는 workspace 내부로 제한
+- timeout 적용
+- stdout/stderr 크기 제한
+- 요청마다 UUID 사용
+
+## PowerShell Bridge를 폐기한 이유
+
+초기 구조에서는 Windows 명령 전달에 PowerShell을 사용했다.
+
+Avast가 해당 실행 경로를 `IDP.HELU.PSE91`로 반복 탐지했다.
+
+PowerShell/cmd를 거치지 않고 `git.exe`, `dotnet.exe` 등을 direct-process 방식으로 실행했을 때 해당 탐지가 발생하지 않았고, 이후 Windows Runner를 이 구조로 통일했다.
 
 ## 주요 파일
 
-- localworkmcp/src/windows-runner-tools.ts
-  - MCP의 windows_exec 구현
-  - 요청 JSON 생성 및 응답 대기
-- windows-runner/runner.cjs
-  - Windows 호스트 프로세스 실행
-- windows-runner/runner-config.json
-  - 실행 파일 allowlist / blocklist / timeout 설정
-- scripts/windows/StartMCP.cjs
-  - Windows Runner, Docker, Tailscale Funnel 자동 시작
-- localworkmcp/tunneling/docker-compose.yml
-  - MCP 컨테이너에 동일한 /shared 큐 마운트
+### MCP
 
-## 큐 구조
+- `localworkmcp/src/windows-runner-tools.ts`
+  - `windows_exec` 구현
+  - request JSON 생성
+  - response JSON 대기/수집
 
-```text
-.windows-runner/
-  requests/
-  responses/
-  state/
-    ready.json
-  logs/
-    runner.log
-    launcher.log
-```
+- `localworkmcp/tunneling/docker-compose.yml`
+  - workspace mount
+  - Windows Runner runtime mount
+  - OAuth state volume
+  - gateway port
 
-정상 처리된 요청/응답 파일은 MCP가 결과를 읽은 뒤 제거한다.
+### Windows Runner
+
+- `windows-runner/runner.cjs`
+  - queue polling
+  - executable 검증
+  - Windows 프로세스 실행
+  - 결과 JSON 작성
+
+- `windows-runner/runner-config.json`
+  - allowlist
+  - blocklist
+  - timeout
+  - output limit
+
+### Lifecycle
+
+- `scripts/windows/StartMCP.cjs`
+  - Runner → Docker → Funnel → readiness 순으로 시작
+
+- `scripts/windows/StopMCP.cjs`
+  - Funnel/Tailscale → Docker → Runner 정리
+  - 이전 `.windows-runner` 위치도 마이그레이션 호환 목적으로 정리
+
+### Manager
+
+- `manager/ChatLocalWork.Manager/`
+  - Start/Stop 스크립트 실행
+  - 각 구성 요소 상태 조회
+  - Runner 로그 표시
 
 ## windows_exec 인터페이스
 
@@ -86,9 +215,38 @@ timeoutMs: number
 예:
 
 ```text
-executable = dotnet.exe
-args = ["build", "LocalMcpManager.csproj", "-c", "Release"]
-workdir = C:\Users\...\chat_local_workspace\LocalMcpManager
+executable = git.exe
+args       = ["status", "--short", "--branch"]
+workdir    = C:\Users\<user>\Documents\chat_local_workspace\chatlocalwork
+timeoutMs  = 10000
 ```
 
-새 프로젝트를 빌드할 때 Runner에 별도 액션을 추가하지 않는다. executable과 args만 변경한다.
+새 프로젝트나 빌드 작업을 추가할 때 별도 액션 이름을 만들지 않는다. 필요한 실행 파일이 허용되어 있다면 동일한 범용 인터페이스를 사용한다.
+
+## 네트워크 구조
+
+```text
+ChatGPT
+  -> https://<tailscale-funnel-domain>/mcp
+  -> Tailscale Funnel
+  -> 127.0.0.1:<selected host port>
+  -> Docker workmachine:2999
+  -> Nginx
+  -> LocalWorkMCP:3000
+```
+
+host port는 기본 3999를 우선 사용하고, 사용할 수 없으면 범위 내에서 자동 선택한다.
+
+## 런타임 호환 식별자
+
+프로젝트 이름은 ChatLocalWork이고 MCP 컴포넌트 이름은 LocalWorkMCP다.
+
+다만 기존 OAuth/Docker 상태 호환성을 위해 아래와 같은 `cokacremote` 식별자가 일부 런타임에 남아 있다.
+
+- Docker Compose project name
+- Docker volume name
+- `/var/lib/cokacremote`
+- `/opt/cokacremote`
+- Supervisor program name
+
+이 값들은 프로젝트 브랜딩이 아니라 기존 상태와의 호환을 위한 내부 식별자이므로 임의로 변경하지 않는다.
