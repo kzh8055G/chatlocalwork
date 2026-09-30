@@ -159,6 +159,7 @@ kzh8055G/chatlocalwork
 - 설치/배포 패키지 검토
 - 오래된 runtime queue 파일 자동 정리 정책
 - Start/Stop 오류 메시지와 로그 가독성 개선
+- 이미 전체 환경이 READY이고 Git 상태가 동일하면 Start 시 Docker rebuild를 생략하는 fast path
 - 필요 시 desktop GUI control 기능 검토
 - 문서와 설정 간 drift 방지
 

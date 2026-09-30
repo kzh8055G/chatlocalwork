@@ -23,6 +23,7 @@ if (!localAppData) throw new Error("LOCALAPPDATA is not available.");
 const runnerQueueDir = path.join(localAppData, "ChatLocalWork", "runtime", "windows-runner");
 const runnerContainerQueueDir = "/chatlocalwork-runtime/windows-runner";
 const runnerReadyFile = path.join(runnerQueueDir, "state", "ready.json");
+const startStateFile = path.join(localAppData, "ChatLocalWork", "runtime", "start-state.json");
 const nodeExe = process.execPath;
 
 function step(text) {
@@ -151,6 +152,39 @@ async function ensureRunner() {
   }
 }
 
+function currentGitHead() {
+  const p = run("git.exe", ["rev-parse", "HEAD"], {
+    cwd: projectRoot,
+    timeout: 10000,
+  });
+  return p.status === 0 ? String(p.stdout || "").trim() : null;
+}
+
+function gitWorkingTreeClean() {
+  const p = run("git.exe", ["status", "--porcelain"], {
+    cwd: projectRoot,
+    timeout: 10000,
+  });
+  return p.status === 0 && String(p.stdout || "").trim() === "";
+}
+
+function readStartState() {
+  try {
+    return JSON.parse(fs.readFileSync(startStateFile, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function writeStartState() {
+  fs.mkdirSync(path.dirname(startStateFile), { recursive: true });
+  fs.writeFileSync(startStateFile, JSON.stringify({
+    gitHead: currentGitHead(),
+    gatewayPort,
+    startedAt: new Date().toISOString(),
+  }, null, 2), "utf8");
+}
+
 function dockerReady() {
   const p = run("docker.exe", ["info"], { timeout: 10000 });
   return p.status === 0;
@@ -187,6 +221,18 @@ async function localGatewayHealthy(port = gatewayPort) {
   const url = "http://127.0.0.1:" + port + "/health";
   const result = await request(url, { timeout: 3000 });
   return result.status >= 200 && result.status < 300;
+}
+
+function publishedGatewayPort() {
+  const p = run("docker.exe", ["port", CONTAINER, "2999/tcp"], { timeout: 10000 });
+  if (p.status !== 0) return null;
+
+  const lines = String(p.stdout || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  for (const line of lines) {
+    const match = line.match(/:(\d+)$/);
+    if (match) return Number(match[1]);
+  }
+  return null;
 }
 
 function getExcludedPortRanges() {
@@ -364,19 +410,23 @@ function tailscaleRunning(ts) {
   }
 }
 
-function ensureFunnel(ts) {
-  let p = run(ts, ["funnel", "status"], { timeout: 10000 });
-  let output = String(p.stdout || "") + String(p.stderr || "");
-  if (p.status === 0 && output.includes(String(gatewayPort))) return;
+function funnelReady(ts, port = gatewayPort) {
+  const p = run(ts, ["funnel", "status"], { timeout: 10000 });
+  const output = String(p.stdout || "") + String(p.stderr || "");
+  return p.status === 0 && output.includes("https://") && output.includes(String(port));
+}
 
-  p = run(ts, ["funnel", "--bg", "--yes", String(gatewayPort)], {
+function ensureFunnel(ts) {
+  if (funnelReady(ts)) return;
+
+  const p = run(ts, ["funnel", "--bg", "--yes", String(gatewayPort)], {
     timeout: 20000,
     inherit: true,
   });
   if (p.status !== 0) throw new Error("Failed to configure Tailscale Funnel.");
 }
 
-async function publicReady(baseUrl) {
+async function publicReady(baseUrl, verbose = true) {
   const health = await request(baseUrl + "/health");
   const resource = await request(baseUrl + "/.well-known/oauth-protected-resource/mcp");
   const auth = await request(baseUrl + "/.well-known/oauth-authorization-server");
@@ -412,12 +462,32 @@ async function publicReady(baseUrl) {
   const healthOk = health.status >= 200 && health.status < 300;
   const mcpOk = mcp.status === 401 || (mcp.status >= 200 && mcp.status < 300);
 
-  console.log(`Health API        : ${healthOk ? "OK" : "FAIL HTTP " + health.status}`);
-  console.log(`OAuth resource    : ${resourceOk ? "OK" : "FAIL"}`);
-  console.log(`OAuth server      : ${authOk ? "OK" : "FAIL"}`);
-  console.log(`MCP auth challenge: ${mcpOk ? "OK" : "FAIL HTTP " + mcp.status}`);
+  if (verbose) {
+    console.log(`Health API        : ${healthOk ? "OK" : "FAIL HTTP " + health.status}`);
+    console.log(`OAuth resource    : ${resourceOk ? "OK" : "FAIL"}`);
+    console.log(`OAuth server      : ${authOk ? "OK" : "FAIL"}`);
+    console.log(`MCP auth challenge: ${mcpOk ? "OK" : "FAIL HTTP " + mcp.status}`);
+  }
 
   return healthOk && resourceOk && authOk && mcpOk;
+}
+
+async function existingEnvironmentReady(publicUrl) {
+  const state = readStartState();
+  const gitHead = currentGitHead();
+  if (!state || !gitHead || state.gitHead !== gitHead || !gitWorkingTreeClean()) return false;
+  if (!runnerReady() || !dockerReady() || !containerHealthy()) return false;
+
+  const port = publishedGatewayPort();
+  if (!port || !await localGatewayHealthy(port)) return false;
+
+  const ts = findTailscale();
+  if (!ts || !tailscaleServiceRunning() || !tailscaleRunning(ts)) return false;
+  if (!funnelReady(ts, port)) return false;
+  if (!await publicReady(publicUrl, false)) return false;
+
+  gatewayPort = port;
+  return true;
 }
 
 async function main() {
@@ -428,6 +498,17 @@ async function main() {
   const env = readEnv(envFile);
   const publicUrl = String(env.MCP_PUBLIC_URL || "").replace(/\/$/, "");
   if (!publicUrl) throw new Error("MCP_PUBLIC_URL is missing.");
+
+  step("Existing environment check");
+  if (await existingEnvironmentReady(publicUrl)) {
+    console.log("Environment    : ALREADY READY");
+    console.log("Gateway port   : " + gatewayPort);
+    console.log("Docker rebuild : SKIPPED");
+    console.log("");
+    console.log("ChatGPT MCP    : READY");
+    return;
+  }
+  console.log("Environment    : startup/recovery required");
 
   step("Windows Runner");
   await ensureRunner();
@@ -505,6 +586,8 @@ async function main() {
   if (!await publicReady(publicUrl)) {
     throw new Error("ChatGPT-facing readiness check failed.");
   }
+
+  writeStartState();
 
   console.log("");
   console.log("ChatGPT MCP    : READY");
