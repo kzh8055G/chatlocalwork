@@ -9,7 +9,14 @@ const mcpRoot = path.join(projectRoot, "localworkmcp");
 const workspaceRoot = path.dirname(projectRoot);
 const composeFile = path.join(mcpRoot, "tunneling", "docker-compose.yml");
 const envFile = path.join(mcpRoot, "tunneling", ".env");
-const runnerReadyFile = path.join(workspaceRoot, ".windows-runner", "state", "ready.json");
+const localAppData = process.env.LOCALAPPDATA;
+if (!localAppData) throw new Error("LOCALAPPDATA is not available.");
+const runnerQueueDir = path.join(localAppData, "ChatLocalWork", "runtime", "windows-runner");
+const legacyRunnerQueueDir = path.join(workspaceRoot, ".windows-runner");
+const runnerReadyFiles = [
+  path.join(runnerQueueDir, "state", "ready.json"),
+  path.join(legacyRunnerQueueDir, "state", "ready.json"),
+];
 
 function step(text) {
   console.log("");
@@ -84,14 +91,19 @@ function runElevatedSc(action, serviceName) {
 }
 
 function stopRunner() {
-  try {
-    const ready = JSON.parse(fs.readFileSync(runnerReadyFile, "utf8"));
-    const pid = Number(ready.pid);
-    if (Number.isInteger(pid) && pid > 0) {
-      bestEffort("taskkill.exe", ["/PID", String(pid), "/T", "/F"]);
-    }
-  } catch {}
-  try { fs.unlinkSync(runnerReadyFile); } catch {}
+  const seenPids = new Set();
+
+  for (const readyFile of runnerReadyFiles) {
+    try {
+      const ready = JSON.parse(fs.readFileSync(readyFile, "utf8"));
+      const pid = Number(ready.pid);
+      if (Number.isInteger(pid) && pid > 0 && !seenPids.has(pid)) {
+        seenPids.add(pid);
+        bestEffort("taskkill.exe", ["/PID", String(pid), "/T", "/F"]);
+      }
+    } catch {}
+    try { fs.unlinkSync(readyFile); } catch {}
+  }
 }
 
 function stopDocker() {

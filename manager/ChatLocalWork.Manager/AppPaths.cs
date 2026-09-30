@@ -11,7 +11,14 @@ internal sealed class AppPaths
         LocalWorkMcpRoot = Path.Combine(ProjectRoot, "localworkmcp");
         StartScript = Path.Combine(ProjectRoot, "scripts", "windows", "StartMCP.cjs");
         StopScript = Path.Combine(ProjectRoot, "scripts", "windows", "StopMCP.cjs");
-        RunnerQueueDirectory = Path.Combine(WorkspaceRoot, ".windows-runner");
+
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrWhiteSpace(localAppData))
+        {
+            throw new InvalidOperationException("LOCALAPPDATA could not be resolved.");
+        }
+
+        RunnerQueueDirectory = Path.Combine(localAppData, "ChatLocalWork", "runtime", "windows-runner");
         RunnerReadyFile = Path.Combine(RunnerQueueDirectory, "state", "ready.json");
         RunnerLogFile = Path.Combine(RunnerQueueDirectory, "logs", "runner.log");
         LauncherLogFile = Path.Combine(RunnerQueueDirectory, "logs", "launcher.log");

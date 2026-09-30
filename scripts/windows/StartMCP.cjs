@@ -18,7 +18,10 @@ const composeFile = path.join(mcpRoot, "tunneling", "docker-compose.yml");
 const envFile = path.join(mcpRoot, "tunneling", ".env");
 const runnerScript = path.join(projectRoot, "windows-runner", "runner.cjs");
 const runnerConfig = path.join(projectRoot, "windows-runner", "runner-config.json");
-const runnerQueueDir = path.join(workspaceRoot, ".windows-runner");
+const localAppData = process.env.LOCALAPPDATA;
+if (!localAppData) throw new Error("LOCALAPPDATA is not available.");
+const runnerQueueDir = path.join(localAppData, "ChatLocalWork", "runtime", "windows-runner");
+const runnerContainerQueueDir = "/chatlocalwork-runtime/windows-runner";
 const runnerReadyFile = path.join(runnerQueueDir, "state", "ready.json");
 const nodeExe = process.execPath;
 
@@ -98,10 +101,17 @@ function request(url, options = {}) {
   });
 }
 
+function sameWindowsPath(a, b) {
+  return path.resolve(String(a || "")).toLowerCase() === path.resolve(String(b || "")).toLowerCase();
+}
+
 function runnerReady() {
   try {
     const ready = JSON.parse(fs.readFileSync(runnerReadyFile, "utf8"));
     if (!ready?.ok || ready?.runtime !== "node" || ready?.executionMode !== "direct-process") {
+      return false;
+    }
+    if (!sameWindowsPath(ready.queueDir, runnerQueueDir) || !sameWindowsPath(ready.workspaceRoot, workspaceRoot)) {
       return false;
     }
     process.kill(Number(ready.pid), 0);
@@ -446,7 +456,11 @@ async function main() {
     cwd: mcpRoot,
     timeout: 300000,
     inherit: true,
-    env: { MCP_HOST_PORT: String(gatewayPort) },
+    env: {
+      MCP_HOST_PORT: String(gatewayPort),
+      WINDOWS_RUNNER_HOST_DIR: runnerQueueDir,
+      WINDOWS_RUNNER_CONTAINER_DIR: runnerContainerQueueDir,
+    },
   });
   if (p.status !== 0) throw new Error("docker compose up --build failed.");
 
@@ -467,7 +481,7 @@ async function main() {
   if (!fs.existsSync(runnerQueueDir)) {
     throw new Error("Windows Runner queue directory is missing.");
   }
-  console.log("Runner queue   : OK");
+  console.log("Runner queue   : OK " + runnerQueueDir);
 
   step("Tailscale");
   const ts = findTailscale();
