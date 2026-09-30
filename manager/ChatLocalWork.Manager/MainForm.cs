@@ -74,6 +74,8 @@ internal sealed class MainForm : Form
 
     private bool _busy;
     private bool _refreshing;
+    private bool _lifecycleStatusRefreshPending;
+    private bool _lifecycleStatusRefreshWorkerRunning;
     private string? _currentLifecycleStage;
 
     public MainForm(AppPaths paths)
@@ -408,9 +410,9 @@ internal sealed class MainForm : Form
         }
     }
 
-    private async Task RefreshStatusAsync()
+    private async Task RefreshStatusAsync(bool forceDuringLifecycle = false)
     {
-        if (_busy || _refreshing)
+        if ((!forceDuringLifecycle && _busy) || _refreshing)
         {
             return;
         }
@@ -437,7 +439,10 @@ internal sealed class MainForm : Form
                 }
             }
 
-            UpdateOverallStatus(statuses);
+            if (!_busy)
+            {
+                UpdateOverallStatus(statuses);
+            }
             _lastCheckedLabel.Text = $"마지막 확인: {DateTime.Now:HH:mm:ss}";
         }
         catch (Exception ex)
@@ -608,6 +613,66 @@ internal sealed class MainForm : Form
         {
             _operationDetailLabel.Text = trimmed;
             _operationDetailLabel.ForeColor = Color.DarkOrange;
+        }
+
+        if (IsLifecycleStatusChange(trimmed))
+        {
+            RequestLifecycleStatusRefresh();
+        }
+    }
+
+    private static bool IsLifecycleStatusChange(string line)
+    {
+        return line.Contains("Windows Runner : READY", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("workmachine    : HEALTHY", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("Local gateway  : OK", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("Tailscale      : OK", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("Funnel         : OK", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("ChatGPT MCP    : READY", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("Environment    : ALREADY READY", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("Tailscale      : STOPPED", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("Docker         : STOPPED", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("Windows Runner : STOPPED", StringComparison.OrdinalIgnoreCase)
+            || line.Contains("MCP resources  : STOPPED", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void RequestLifecycleStatusRefresh()
+    {
+        if (InvokeRequired)
+        {
+            BeginInvoke(RequestLifecycleStatusRefresh);
+            return;
+        }
+
+        _lifecycleStatusRefreshPending = true;
+        if (_lifecycleStatusRefreshWorkerRunning)
+        {
+            return;
+        }
+
+        _ = DrainLifecycleStatusRefreshesAsync();
+    }
+
+    private async Task DrainLifecycleStatusRefreshesAsync()
+    {
+        _lifecycleStatusRefreshWorkerRunning = true;
+
+        try
+        {
+            while (_lifecycleStatusRefreshPending)
+            {
+                _lifecycleStatusRefreshPending = false;
+                await RefreshStatusAsync(forceDuringLifecycle: true);
+            }
+        }
+        finally
+        {
+            _lifecycleStatusRefreshWorkerRunning = false;
+
+            if (_lifecycleStatusRefreshPending && !IsDisposed)
+            {
+                RequestLifecycleStatusRefresh();
+            }
         }
     }
 
