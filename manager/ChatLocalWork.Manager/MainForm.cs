@@ -4,6 +4,8 @@ namespace ChatLocalWork.Manager;
 
 internal sealed class MainForm : Form
 {
+    private const int MaxLogCharacters = 250_000;
+
     private static readonly string[] ComponentNames =
     {
         "Windows Runner",
@@ -25,6 +27,8 @@ internal sealed class MainForm : Form
     private readonly Button _refreshButton = new() { Text = "상태 새로 고침", AutoSize = true };
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
     private readonly Button _openRepositoryButton = new() { Text = "프로젝트 폴더", AutoSize = true };
+    private readonly Button _clearLogButton = new() { Text = "로그 지우기", AutoSize = true };
+
     private readonly RichTextBox _logBox = new()
     {
         Dock = DockStyle.Fill,
@@ -33,14 +37,26 @@ internal sealed class MainForm : Form
         Font = new Font("Consolas", 9F),
         BackColor = SystemColors.Window,
     };
+
     private readonly Label _overallLabel = new()
     {
-        AutoSize = true,
+        Dock = DockStyle.Fill,
+        TextAlign = ContentAlignment.MiddleRight,
         Font = new Font("Segoe UI", 10F, FontStyle.Bold),
         Text = "상태 확인 중...",
     };
 
+    private readonly Label _lastCheckedLabel = new()
+    {
+        Dock = DockStyle.Fill,
+        TextAlign = ContentAlignment.MiddleRight,
+        ForeColor = SystemColors.GrayText,
+        Font = new Font("Segoe UI", 8.5F),
+        Text = "마지막 확인: -",
+    };
+
     private bool _busy;
+    private bool _refreshing;
 
     public MainForm(AppPaths paths)
     {
@@ -50,8 +66,8 @@ internal sealed class MainForm : Form
 
         Text = "ChatLocalWork Manager";
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(820, 620);
-        Size = new Size(920, 700);
+        MinimumSize = new Size(900, 640);
+        Size = new Size(980, 720);
         Font = new Font("Segoe UI", 9F);
         AutoScaleMode = AutoScaleMode.Dpi;
 
@@ -62,16 +78,33 @@ internal sealed class MainForm : Form
         _refreshButton.Click += async (_, _) => await RefreshStatusAsync();
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();
+        _clearLogButton.Click += (_, _) => _logBox.Clear();
 
         _statusTimer = new System.Windows.Forms.Timer { Interval = 5000 };
         _statusTimer.Tick += async (_, _) => await RefreshStatusAsync();
 
         Shown += async (_, _) =>
         {
-            AppendLog($"Repository: {_paths.RepositoryRoot}");
-            AppendLog($"Workspace : {_paths.WorkspaceRoot}");
+            AppendManagerLog($"Repository: {_paths.RepositoryRoot}");
+            AppendManagerLog($"Workspace : {_paths.WorkspaceRoot}");
+            AppendManagerLog($"Runtime   : {_paths.RunnerQueueDirectory}");
             await RefreshStatusAsync();
             _statusTimer.Start();
+        };
+
+        FormClosing += (_, e) =>
+        {
+            if (!_busy)
+            {
+                return;
+            }
+
+            e.Cancel = true;
+            MessageBox.Show(
+                "Start/Stop 작업이 진행 중입니다. 작업이 완료된 뒤 Manager를 종료해 주세요.",
+                "ChatLocalWork Manager",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
         };
 
         FormClosed += (_, _) => _statusTimer.Dispose();
@@ -88,8 +121,8 @@ internal sealed class MainForm : Form
         };
 
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 228));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 238));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         var header = new Panel { Dock = DockStyle.Fill };
@@ -113,7 +146,16 @@ internal sealed class MainForm : Form
         header.Controls.Add(title);
         header.Controls.Add(subtitle);
 
-        var actions = new FlowLayoutPanel
+        var actions = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+        };
+        actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 68));
+        actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32));
+
+        var buttons = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
@@ -127,15 +169,27 @@ internal sealed class MainForm : Form
                      _refreshButton,
                      _loadLogButton,
                      _openRepositoryButton,
+                     _clearLogButton,
                  })
         {
             button.Height = 32;
-            button.Padding = new Padding(8, 0, 8, 0);
-            actions.Controls.Add(button);
+            button.Padding = new Padding(7, 0, 7, 0);
+            buttons.Controls.Add(button);
         }
 
-        actions.Controls.Add(new Label { Text = "     ", AutoSize = true });
-        actions.Controls.Add(_overallLabel);
+        var summary = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 1,
+            RowCount = 2,
+        };
+        summary.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+        summary.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+        summary.Controls.Add(_overallLabel, 0, 0);
+        summary.Controls.Add(_lastCheckedLabel, 0, 1);
+
+        actions.Controls.Add(buttons, 0, 0);
+        actions.Controls.Add(summary, 1, 0);
 
         var statusGroup = new GroupBox
         {
@@ -152,8 +206,9 @@ internal sealed class MainForm : Form
         };
 
         statusTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));
-        statusTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110));
+        statusTable.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
         statusTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        statusTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
 
         statusTable.Controls.Add(CreateHeaderLabel("구성 요소"), 0, 0);
         statusTable.Controls.Add(CreateHeaderLabel("상태"), 1, 0);
@@ -163,6 +218,7 @@ internal sealed class MainForm : Form
         {
             var name = ComponentNames[i];
             var row = i + 1;
+            statusTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             statusTable.Controls.Add(new Label
             {
@@ -230,10 +286,12 @@ internal sealed class MainForm : Form
             return;
         }
 
-        SetBusy(true);
+        var operation = start ? "START" : "STOP";
+        var stopwatch = Stopwatch.StartNew();
+
+        SetBusy(true, operation);
         _statusTimer.Stop();
 
-        var operation = start ? "START" : "STOP";
         AppendLog(string.Empty);
         AppendLog($"===== {operation} {DateTime.Now:yyyy-MM-dd HH:mm:ss} =====");
 
@@ -243,22 +301,27 @@ internal sealed class MainForm : Form
                 ? await _lifecycleService.StartAsync(AppendLog)
                 : await _lifecycleService.StopAsync(AppendLog);
 
+            stopwatch.Stop();
+
             if (result.Success)
             {
-                AppendLog($"[{operation}] 완료");
+                AppendManagerLog($"{operation} 완료 · {FormatDuration(stopwatch.Elapsed)}");
             }
             else if (result.TimedOut)
             {
-                AppendLog($"[{operation}] 시간 초과");
+                AppendManagerLog($"{operation} 시간 초과 · {FormatDuration(stopwatch.Elapsed)}");
             }
             else
             {
-                AppendLog($"[{operation}] 실패 · ExitCode={result.ExitCode}");
+                var reason = GetFailureSummary(result);
+                var suffix = string.IsNullOrWhiteSpace(reason) ? string.Empty : $" · {reason}";
+                AppendManagerLog($"{operation} 실패 · ExitCode={result.ExitCode}{suffix}");
             }
         }
         catch (Exception ex)
         {
-            AppendLog($"[{operation}] ERROR: {ex.Message}");
+            stopwatch.Stop();
+            AppendManagerLog($"{operation} ERROR · {ex.Message}");
             MessageBox.Show(
                 ex.Message,
                 "ChatLocalWork Manager",
@@ -275,11 +338,12 @@ internal sealed class MainForm : Form
 
     private async Task RefreshStatusAsync()
     {
-        if (_busy)
+        if (_busy || _refreshing)
         {
             return;
         }
 
+        _refreshing = true;
         _refreshButton.Enabled = false;
 
         try
@@ -297,27 +361,53 @@ internal sealed class MainForm : Form
                 if (_detailLabels.TryGetValue(status.Name, out var detailLabel))
                 {
                     detailLabel.Text = status.Detail;
+                    detailLabel.AccessibleDescription = status.Detail;
                 }
             }
 
-            var readyCount = statuses.Count(status => status.State == ComponentState.Ready);
-            _overallLabel.Text = readyCount == statuses.Count
-                ? "전체 상태: READY"
-                : $"전체 상태: {readyCount}/{statuses.Count} READY";
-            _overallLabel.ForeColor = readyCount == statuses.Count
-                ? Color.ForestGreen
-                : SystemColors.ControlText;
+            UpdateOverallStatus(statuses);
+            _lastCheckedLabel.Text = $"마지막 확인: {DateTime.Now:HH:mm:ss}";
         }
         catch (Exception ex)
         {
-            _overallLabel.Text = "상태 확인 실패";
+            _overallLabel.Text = "전체 상태: 확인 실패";
             _overallLabel.ForeColor = Color.Firebrick;
-            AppendLog($"[STATUS] {ex.Message}");
+            _lastCheckedLabel.Text = $"마지막 확인 실패: {DateTime.Now:HH:mm:ss}";
+            AppendManagerLog($"STATUS 오류 · {ex.Message}");
         }
         finally
         {
+            _refreshing = false;
             _refreshButton.Enabled = !_busy;
         }
+    }
+
+    private void UpdateOverallStatus(IReadOnlyList<ComponentStatus> statuses)
+    {
+        var readyCount = statuses.Count(status => status.State == ComponentState.Ready);
+        var allReady = readyCount == statuses.Count;
+        var allStopped = statuses.All(status => status.State == ComponentState.Stopped);
+        var needsAttention = statuses.Any(status =>
+            status.State is ComponentState.Warning or ComponentState.Unavailable);
+
+        if (allReady)
+        {
+            _overallLabel.Text = "전체 상태: READY";
+            _overallLabel.ForeColor = Color.ForestGreen;
+            return;
+        }
+
+        if (allStopped)
+        {
+            _overallLabel.Text = "전체 상태: STOPPED";
+            _overallLabel.ForeColor = SystemColors.GrayText;
+            return;
+        }
+
+        _overallLabel.Text = needsAttention
+            ? $"전체 상태: 확인 필요 · {readyCount}/{statuses.Count} READY"
+            : $"전체 상태: PARTIAL · {readyCount}/{statuses.Count} READY";
+        _overallLabel.ForeColor = needsAttention ? Color.DarkOrange : Color.SteelBlue;
     }
 
     private void LoadRunnerLog()
@@ -327,7 +417,7 @@ internal sealed class MainForm : Form
 
         if (existing.Length == 0)
         {
-            AppendLog("[LOG] Runner 로그 파일이 없습니다.");
+            AppendManagerLog("Runner 로그 파일이 없습니다.");
             return;
         }
 
@@ -346,7 +436,7 @@ internal sealed class MainForm : Form
             }
             catch (Exception ex)
             {
-                AppendLog($"[LOG] {ex.Message}");
+                AppendManagerLog($"Runner 로그 읽기 실패 · {ex.Message}");
             }
         }
     }
@@ -385,18 +475,33 @@ internal sealed class MainForm : Form
         }
         catch (Exception ex)
         {
-            AppendLog($"[OPEN] {ex.Message}");
+            AppendManagerLog($"프로젝트 폴더 열기 실패 · {ex.Message}");
         }
     }
 
-    private void SetBusy(bool busy)
+    private void SetBusy(bool busy, string? operation = null)
     {
         _busy = busy;
         _startButton.Enabled = !busy;
         _stopButton.Enabled = !busy;
         _refreshButton.Enabled = !busy;
         _loadLogButton.Enabled = !busy;
-        _openRepositoryButton.Enabled = !busy;
+
+        _startButton.Text = busy && operation == "START" ? "Starting..." : "Start MCP";
+        _stopButton.Text = busy && operation == "STOP" ? "Stopping..." : "Stop MCP";
+
+        if (busy)
+        {
+            _overallLabel.Text = operation == "START"
+                ? "작업 중: STARTING..."
+                : "작업 중: STOPPING...";
+            _overallLabel.ForeColor = Color.SteelBlue;
+        }
+    }
+
+    private void AppendManagerLog(string text)
+    {
+        AppendLog($"[{DateTime.Now:HH:mm:ss}] {text}");
     }
 
     private void AppendLog(string text)
@@ -408,16 +513,68 @@ internal sealed class MainForm : Form
         }
 
         _logBox.AppendText(text + Environment.NewLine);
+        TrimLogIfNeeded();
         _logBox.SelectionStart = _logBox.TextLength;
         _logBox.ScrollToCaret();
     }
 
+    private void TrimLogIfNeeded()
+    {
+        if (_logBox.TextLength <= MaxLogCharacters)
+        {
+            return;
+        }
+
+        var removeLength = _logBox.TextLength - MaxLogCharacters;
+        var snapshotLength = Math.Min(_logBox.TextLength, removeLength + 4096);
+        var snapshot = _logBox.Text[..snapshotLength];
+        var nextNewLine = snapshot.IndexOf('\n', removeLength);
+        if (nextNewLine >= 0)
+        {
+            removeLength = nextNewLine + 1;
+        }
+
+        _logBox.Select(0, removeLength);
+        _logBox.SelectedText = string.Empty;
+    }
+
+    private static string GetFailureSummary(ProcessResult result)
+    {
+        static string? LastUsefulLine(string text)
+        {
+            return text
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(line => line.Trim())
+                .LastOrDefault(line => line.Length > 0);
+        }
+
+        var combined = result.StandardOutput + Environment.NewLine + result.StandardError;
+        var explicitError = combined
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .LastOrDefault(line => line.Contains("[ERROR]", StringComparison.OrdinalIgnoreCase));
+
+        var summary = explicitError
+            ?? LastUsefulLine(result.StandardError)
+            ?? LastUsefulLine(result.StandardOutput)
+            ?? string.Empty;
+
+        return summary.Length <= 180 ? summary : summary[..177] + "...";
+    }
+
+    private static string FormatDuration(TimeSpan elapsed)
+    {
+        return elapsed.TotalMinutes >= 1
+            ? $"{(int)elapsed.TotalMinutes}분 {elapsed.Seconds}초"
+            : $"{elapsed.TotalSeconds:0.0}초";
+    }
+
     private static string StateText(ComponentState state) => state switch
     {
-        ComponentState.Ready => "READY",
-        ComponentState.Stopped => "STOPPED",
-        ComponentState.Warning => "WARNING",
-        ComponentState.Unavailable => "N/A",
+        ComponentState.Ready => "● READY",
+        ComponentState.Stopped => "● STOPPED",
+        ComponentState.Warning => "● WARNING",
+        ComponentState.Unavailable => "● N/A",
         _ => "-",
     };
 

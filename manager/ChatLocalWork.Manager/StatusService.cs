@@ -73,13 +73,27 @@ internal sealed class StatusService
                 return new ComponentStatus("Windows Runner", ComponentState.Warning, "PID 정보 없음");
             }
 
+            if (!root.TryGetProperty("queueDir", out var queueDirElement))
+            {
+                return new ComponentStatus("Windows Runner", ComponentState.Warning, "queueDir 정보 없음");
+            }
+
+            var queueDir = queueDirElement.GetString();
+            if (string.IsNullOrWhiteSpace(queueDir) ||
+                !Path.GetFullPath(queueDir).Equals(
+                    Path.GetFullPath(_paths.RunnerQueueDirectory),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return new ComponentStatus("Windows Runner", ComponentState.Warning, "stale ready.json · queueDir 불일치");
+            }
+
             using var process = Process.GetProcessById(pid);
             if (process.HasExited)
             {
                 return new ComponentStatus("Windows Runner", ComponentState.Stopped, $"PID {pid} 종료됨");
             }
 
-            return new ComponentStatus("Windows Runner", ComponentState.Ready, $"READY · PID {pid}");
+            return new ComponentStatus("Windows Runner", ComponentState.Ready, $"PID {pid} · LocalAppData runtime");
         }
         catch
         {

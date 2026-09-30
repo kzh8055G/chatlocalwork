@@ -16,6 +16,12 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 - Tailscale Funnel 상태 확인
 - Local MCP `/health` 확인
 - Runner 로그 확인
+- 실행 로그 지우기 및 자동 길이 제한
+- Start/Stop 작업 중 중복 실행 방지
+- 자동 상태 새로고침 중복 방지
+- 전체 상태/마지막 확인 시각 표시
+- Start/Stop 성공·실패·소요 시간 요약
+- stale Runner ready.json 감지
 - ChatLocalWork 프로젝트 폴더 열기
 
 ## 사용 스크립트
