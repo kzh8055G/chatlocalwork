@@ -38,7 +38,7 @@ PowerShell/cmd 기반 실행 경로는 폐기했다.
 
 ## 현재 주요 파일
 
-- src/windows-runner-tools.ts
+- localworkmcp/src/windows-runner-tools.ts
 - windows-runner/runner.cjs
 - windows-runner/runner-config.json
 - docs/ARCHITECTURE.md

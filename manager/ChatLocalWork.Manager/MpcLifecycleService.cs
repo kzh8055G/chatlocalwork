@@ -1,4 +1,4 @@
-namespace LocalWorkMCP.Manager;
+namespace ChatLocalWork.Manager;
 
 internal sealed class MpcLifecycleService
 {

@@ -11,12 +11,13 @@ const MAX_GATEWAY_PORT = 4999;
 let gatewayPort = DEFAULT_GATEWAY_PORT;
 
 const scriptRoot = __dirname;
-const repoRoot = path.resolve(scriptRoot, "..", "..");
-const workspaceRoot = path.dirname(repoRoot);
-const composeFile = path.join(repoRoot, "tunneling", "docker-compose.yml");
-const envFile = path.join(repoRoot, "tunneling", ".env");
-const runnerScript = path.join(repoRoot, "windows-runner", "runner.cjs");
-const runnerConfig = path.join(repoRoot, "windows-runner", "runner-config.json");
+const projectRoot = path.resolve(scriptRoot, "..", "..");
+const mcpRoot = path.join(projectRoot, "localworkmcp");
+const workspaceRoot = path.dirname(projectRoot);
+const composeFile = path.join(mcpRoot, "tunneling", "docker-compose.yml");
+const envFile = path.join(mcpRoot, "tunneling", ".env");
+const runnerScript = path.join(projectRoot, "windows-runner", "runner.cjs");
+const runnerConfig = path.join(projectRoot, "windows-runner", "runner-config.json");
 const runnerQueueDir = path.join(workspaceRoot, ".windows-runner");
 const runnerReadyFile = path.join(runnerQueueDir, "state", "ready.json");
 const nodeExe = process.execPath;
@@ -435,14 +436,14 @@ async function main() {
   }
 
   step("workmachine build / start");
-  console.log(`Source         : ${repoRoot}`);
+  console.log(`Source         : ${mcpRoot}`);
 
   let p = run("docker.exe", [
     "compose", "--env-file", envFile,
     "-f", composeFile,
     "up", "-d", "--build", "--force-recreate", "workmachine"
   ], {
-    cwd: repoRoot,
+    cwd: mcpRoot,
     timeout: 300000,
     inherit: true,
     env: { MCP_HOST_PORT: String(gatewayPort) },

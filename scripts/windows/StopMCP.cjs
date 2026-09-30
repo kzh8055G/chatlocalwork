@@ -4,10 +4,11 @@ const { spawnSync } = require("child_process");
 
 const CONTAINER = "workmachine";
 const scriptRoot = __dirname;
-const repoRoot = path.resolve(scriptRoot, "..", "..");
-const workspaceRoot = path.dirname(repoRoot);
-const composeFile = path.join(repoRoot, "tunneling", "docker-compose.yml");
-const envFile = path.join(repoRoot, "tunneling", ".env");
+const projectRoot = path.resolve(scriptRoot, "..", "..");
+const mcpRoot = path.join(projectRoot, "localworkmcp");
+const workspaceRoot = path.dirname(projectRoot);
+const composeFile = path.join(mcpRoot, "tunneling", "docker-compose.yml");
+const envFile = path.join(mcpRoot, "tunneling", ".env");
 const runnerReadyFile = path.join(workspaceRoot, ".windows-runner", "state", "ready.json");
 
 function step(text) {
@@ -101,11 +102,11 @@ function stopDocker() {
       "-f", composeFile,
       "down",
       "--remove-orphans",
-    ], { cwd: repoRoot, timeout: 120000, reportFailure: true });
+    ], { cwd: mcpRoot, timeout: 120000, reportFailure: true });
   }
 
   bestEffort("docker.exe", ["desktop", "stop"], {
-    cwd: repoRoot,
+    cwd: mcpRoot,
     timeout: 120000,
     reportFailure: true,
   });

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace LocalWorkMCP.Manager;
+namespace ChatLocalWork.Manager;
 
 internal sealed class MainForm : Form
 {
@@ -48,7 +48,7 @@ internal sealed class MainForm : Form
         _lifecycleService = new MpcLifecycleService(paths);
         _statusService = new StatusService(paths);
 
-        Text = "LocalWorkMCP Manager";
+        Text = "ChatLocalWork Manager";
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(820, 620);
         Size = new Size(920, 700);
@@ -96,7 +96,7 @@ internal sealed class MainForm : Form
 
         var title = new Label
         {
-            Text = "LocalWorkMCP Manager",
+            Text = "ChatLocalWork Manager",
             AutoSize = true,
             Font = new Font("Segoe UI", 18F, FontStyle.Bold),
             Location = new Point(0, 0),
@@ -261,7 +261,7 @@ internal sealed class MainForm : Form
             AppendLog($"[{operation}] ERROR: {ex.Message}");
             MessageBox.Show(
                 ex.Message,
-                "LocalWorkMCP Manager",
+                "ChatLocalWork Manager",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }

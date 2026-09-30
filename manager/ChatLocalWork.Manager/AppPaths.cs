@@ -1,22 +1,25 @@
-namespace LocalWorkMCP.Manager;
+namespace ChatLocalWork.Manager;
 
 internal sealed class AppPaths
 {
-    private AppPaths(string repositoryRoot)
+    private AppPaths(string projectRoot)
     {
-        RepositoryRoot = repositoryRoot;
-        WorkspaceRoot = Directory.GetParent(repositoryRoot)?.FullName
+        ProjectRoot = projectRoot;
+        WorkspaceRoot = Directory.GetParent(projectRoot)?.FullName
             ?? throw new InvalidOperationException("Workspace root could not be resolved.");
 
-        StartScript = Path.Combine(RepositoryRoot, "scripts", "windows", "StartMCP.cjs");
-        StopScript = Path.Combine(RepositoryRoot, "scripts", "windows", "StopMCP.cjs");
+        LocalWorkMcpRoot = Path.Combine(ProjectRoot, "localworkmcp");
+        StartScript = Path.Combine(ProjectRoot, "scripts", "windows", "StartMCP.cjs");
+        StopScript = Path.Combine(ProjectRoot, "scripts", "windows", "StopMCP.cjs");
         RunnerQueueDirectory = Path.Combine(WorkspaceRoot, ".windows-runner");
         RunnerReadyFile = Path.Combine(RunnerQueueDirectory, "state", "ready.json");
         RunnerLogFile = Path.Combine(RunnerQueueDirectory, "logs", "runner.log");
         LauncherLogFile = Path.Combine(RunnerQueueDirectory, "logs", "launcher.log");
     }
 
-    public string RepositoryRoot { get; }
+    public string ProjectRoot { get; }
+    public string RepositoryRoot => ProjectRoot;
+    public string LocalWorkMcpRoot { get; }
     public string WorkspaceRoot { get; }
     public string StartScript { get; }
     public string StopScript { get; }
@@ -32,7 +35,7 @@ internal sealed class AppPaths
         while (current is not null)
         {
             var startScript = Path.Combine(current.FullName, "scripts", "windows", "StartMCP.cjs");
-            var composeFile = Path.Combine(current.FullName, "tunneling", "docker-compose.yml");
+            var composeFile = Path.Combine(current.FullName, "localworkmcp", "tunneling", "docker-compose.yml");
 
             if (File.Exists(startScript) && File.Exists(composeFile))
             {
@@ -43,7 +46,7 @@ internal sealed class AppPaths
         }
 
         throw new InvalidOperationException(
-            "LocalWorkMCP repository root was not found. " +
-            "Run the Manager from a build located inside the LocalWorkMCP repository.");
+            "ChatLocalWork project root was not found. " +
+            "Run the Manager from a build located inside the ChatLocalWork repository.");
     }
 }

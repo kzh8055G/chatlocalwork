@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace LocalWorkMCP.Manager;
+namespace ChatLocalWork.Manager;
 
 internal enum ComponentState
 {

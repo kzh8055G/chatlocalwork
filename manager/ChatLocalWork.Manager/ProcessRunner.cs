@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 
-namespace LocalWorkMCP.Manager;
+namespace ChatLocalWork.Manager;
 
 internal sealed record ProcessResult(
     int ExitCode,

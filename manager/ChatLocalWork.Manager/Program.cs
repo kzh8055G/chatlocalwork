@@ -1,4 +1,4 @@
-namespace LocalWorkMCP.Manager;
+namespace ChatLocalWork.Manager;
 
 internal static class Program
 {
@@ -16,7 +16,7 @@ internal static class Program
         {
             MessageBox.Show(
                 ex.Message,
-                "LocalWorkMCP Manager",
+                "ChatLocalWork Manager",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
         }
