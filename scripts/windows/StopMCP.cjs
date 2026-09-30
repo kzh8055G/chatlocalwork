@@ -11,7 +11,9 @@ const composeFile = path.join(mcpRoot, "tunneling", "docker-compose.yml");
 const envFile = path.join(mcpRoot, "tunneling", ".env");
 const localAppData = process.env.LOCALAPPDATA;
 if (!localAppData) throw new Error("LOCALAPPDATA is not available.");
-const runnerQueueDir = path.join(localAppData, "ChatLocalWork", "runtime", "windows-runner");
+const runtimeDir = path.join(localAppData, "ChatLocalWork", "runtime");
+const runnerQueueDir = path.join(runtimeDir, "windows-runner");
+const startStateFile = path.join(runtimeDir, "start-state.json");
 const legacyRunnerQueueDir = path.join(workspaceRoot, ".windows-runner");
 const runnerReadyFiles = [
   path.join(runnerQueueDir, "state", "ready.json"),
@@ -67,6 +69,12 @@ function findTailscale() {
     path.join(process.env["ProgramFiles(x86)"] || "C:\Program Files (x86)", "Tailscale", "tailscale.exe"),
   ];
   return candidates.find(fs.existsSync) || null;
+}
+
+function serviceRunning(serviceName) {
+  const p = run("sc.exe", ["query", serviceName], { timeout: 10000 });
+  const output = outputOf(p).toUpperCase();
+  return p.status === 0 && output.includes("RUNNING");
 }
 
 function runElevatedSc(action, serviceName) {
@@ -157,15 +165,37 @@ function stopTailscale() {
 
   bestEffort("taskkill.exe", ["/IM", "tailscale-ipn.exe", "/T", "/F"]);
 
-  let stopped = run("sc.exe", ["stop", "Tailscale"], { timeout: 15000 });
+  if (!serviceRunning("Tailscale")) {
+    console.log("Tailscale service: already stopped");
+    return;
+  }
 
-  if (stopped.status !== 0) {
+  const stopped = run("sc.exe", ["stop", "Tailscale"], { timeout: 15000 });
+  if (stopped.status !== 0 && serviceRunning("Tailscale")) {
     if (!runElevatedSc("stop", "Tailscale")) {
       throw new Error("Tailscale Windows service could not be stopped after UAC approval.");
     }
   }
 
+  if (serviceRunning("Tailscale")) {
+    throw new Error("Tailscale Windows service is still running after stop.");
+  }
+
   console.log("Tailscale service: STOPPED");
+}
+
+function cleanupRuntimeState() {
+  for (const subdir of ["requests", "responses"]) {
+    const dir = path.join(runnerQueueDir, subdir);
+    let names = [];
+    try { names = fs.readdirSync(dir); } catch { continue; }
+    for (const name of names) {
+      try { fs.unlinkSync(path.join(dir, name)); } catch {}
+    }
+  }
+
+  try { fs.unlinkSync(startStateFile); } catch {}
+  console.log("Runtime queue   : CLEAN");
 }
 
 function verifyStopped() {
@@ -200,6 +230,9 @@ function main() {
   step("Windows Runner");
   stopRunner();
   console.log("Windows Runner : STOPPED");
+
+  step("Runtime cleanup");
+  cleanupRuntimeState();
 
   step("Final verification");
   verifyStopped();

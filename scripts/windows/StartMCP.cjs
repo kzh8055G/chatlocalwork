@@ -25,6 +25,7 @@ const runnerContainerQueueDir = "/chatlocalwork-runtime/windows-runner";
 const runnerReadyFile = path.join(runnerQueueDir, "state", "ready.json");
 const startStateFile = path.join(localAppData, "ChatLocalWork", "runtime", "start-state.json");
 const nodeExe = process.execPath;
+let rollbackOnFailure = false;
 
 function step(text) {
   console.log("");
@@ -40,6 +41,26 @@ function run(command, args = [], options = {}) {
     timeout: options.timeout,
     env: options.env ? { ...process.env, ...options.env } : process.env,
   });
+}
+
+function trimFileTail(file, maxBytes = 4 * 1024 * 1024, keepBytes = 2 * 1024 * 1024) {
+  try {
+    const stat = fs.statSync(file);
+    if (stat.size <= maxBytes) return;
+
+    const fd = fs.openSync(file, "r");
+    try {
+      const bytesToRead = Math.min(keepBytes, stat.size);
+      const buffer = Buffer.alloc(bytesToRead);
+      fs.readSync(fd, buffer, 0, bytesToRead, stat.size - bytesToRead);
+      let text = buffer.toString("utf8");
+      const firstNewLine = text.indexOf("\n");
+      if (firstNewLine >= 0) text = text.slice(firstNewLine + 1);
+      fs.writeFileSync(file, text, "utf8");
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {}
 }
 
 function sleep(ms) {
@@ -106,15 +127,34 @@ function sameWindowsPath(a, b) {
   return path.resolve(String(a || "")).toLowerCase() === path.resolve(String(b || "")).toLowerCase();
 }
 
-function runnerReady() {
+function readRunnerReadyState() {
   try {
-    const ready = JSON.parse(fs.readFileSync(runnerReadyFile, "utf8"));
-    if (!ready?.ok || ready?.runtime !== "node" || ready?.executionMode !== "direct-process") {
-      return false;
-    }
-    if (!sameWindowsPath(ready.queueDir, runnerQueueDir) || !sameWindowsPath(ready.workspaceRoot, workspaceRoot)) {
-      return false;
-    }
+    return JSON.parse(fs.readFileSync(runnerReadyFile, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function runnerStateMatches(ready) {
+  return Boolean(
+    ready?.ok &&
+    ready?.runtime === "node" &&
+    ready?.executionMode === "direct-process" &&
+    sameWindowsPath(ready.queueDir, runnerQueueDir) &&
+    sameWindowsPath(ready.workspaceRoot, workspaceRoot)
+  );
+}
+
+function runnerHeartbeatFresh(ready) {
+  const heartbeatMs = Date.parse(String(ready?.heartbeatAt || ""));
+  return Number.isFinite(heartbeatMs) && Date.now() - heartbeatMs <= 10000;
+}
+
+function runnerReady() {
+  const ready = readRunnerReadyState();
+  if (!runnerStateMatches(ready) || !runnerHeartbeatFresh(ready)) return false;
+
+  try {
     process.kill(Number(ready.pid), 0);
     return true;
   } catch {
@@ -122,15 +162,29 @@ function runnerReady() {
   }
 }
 
+function stopStaleRunnerIfOwned() {
+  const ready = readRunnerReadyState();
+  if (!runnerStateMatches(ready)) return;
+  if (runnerHeartbeatFresh(ready)) return;
+
+  const pid = Number(ready.pid);
+  if (!Number.isInteger(pid) || pid <= 0) return;
+
+  console.log("Windows Runner : stale heartbeat detected, restarting PID " + pid);
+  run("taskkill.exe", ["/PID", String(pid), "/T", "/F"], { timeout: 10000 });
+}
+
 async function ensureRunner() {
   if (runnerReady()) return;
 
+  stopStaleRunnerIfOwned();
   fs.mkdirSync(path.dirname(runnerReadyFile), { recursive: true });
   try { fs.unlinkSync(runnerReadyFile); } catch {}
 
   const logDir = path.join(runnerQueueDir, "logs");
   fs.mkdirSync(logDir, { recursive: true });
   const launcherLog = path.join(logDir, "launcher.log");
+  trimFileTail(launcherLog);
   const logFd = fs.openSync(launcherLog, "a");
 
   const child = spawn(nodeExe, [
@@ -509,6 +563,7 @@ async function main() {
     return;
   }
   console.log("Environment    : startup/recovery required");
+  rollbackOnFailure = true;
 
   step("Windows Runner");
   await ensureRunner();
@@ -588,6 +643,7 @@ async function main() {
   }
 
   writeStartState();
+  rollbackOnFailure = false;
 
   console.log("");
   console.log("ChatGPT MCP    : READY");
@@ -596,5 +652,22 @@ async function main() {
 main().catch(err => {
   console.error("");
   console.error("[ERROR] " + (err?.message || err));
+
+  if (rollbackOnFailure) {
+    console.log("");
+    console.log("==> Rollback failed startup");
+    const stopScript = path.join(scriptRoot, "StopMCP.cjs");
+    const rollback = run(nodeExe, [stopScript], {
+      cwd: projectRoot,
+      timeout: 240000,
+      inherit: true,
+    });
+    if (rollback.status === 0) {
+      console.log("Rollback       : COMPLETE");
+    } else {
+      console.error("[WARN] Automatic rollback did not complete cleanly.");
+    }
+  }
+
   process.exitCode = 1;
 });

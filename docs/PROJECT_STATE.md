@@ -91,6 +91,16 @@ Docker mount:
 - Runner 로그 표시
 - 프로젝트 폴더 열기
 
+### Start/Stop 안정화
+
+- 이미 전체 환경이 READY이고 Git 상태가 동일하면 Start 시 Docker rebuild를 생략하는 fast path
+- Windows Runner `ready.json` heartbeat 기반 stale 감지 및 재시작
+- 24시간 이상 orphan Runner queue 자동 정리
+- `runner.log` / `launcher.log` 크기 제한
+- Start 실패 시 StopMCP 자동 rollback
+- 정상 Stop 시 runtime queue와 `start-state.json` 정리
+- 이미 중지된 Tailscale 서비스에서 불필요한 UAC 요청 방지
+
 ### 프로젝트 재구성
 
 기존 단일 LocalWorkMCP 중심 구조를 ChatLocalWork 상위 프로젝트 구조로 변경했다.
@@ -157,9 +167,7 @@ kzh8055G/chatlocalwork
 
 - Manager UI/UX 개선
 - 설치/배포 패키지 검토
-- 오래된 runtime queue 파일 자동 정리 정책
-- Start/Stop 오류 메시지와 로그 가독성 개선
-- 이미 전체 환경이 READY이고 Git 상태가 동일하면 Start 시 Docker rebuild를 생략하는 fast path
+- Start/Stop 오류 메시지와 로그 가독성 추가 개선
 - 필요 시 desktop GUI control 기능 검토
 - 문서와 설정 간 drift 방지
 

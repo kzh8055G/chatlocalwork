@@ -87,6 +87,21 @@ internal sealed class StatusService
                 return new ComponentStatus("Windows Runner", ComponentState.Warning, "stale ready.json · queueDir 불일치");
             }
 
+            if (!root.TryGetProperty("heartbeatAt", out var heartbeatElement) ||
+                !DateTimeOffset.TryParse(heartbeatElement.GetString(), out var heartbeatAt))
+            {
+                return new ComponentStatus("Windows Runner", ComponentState.Warning, "heartbeat 정보 없음");
+            }
+
+            var heartbeatAge = DateTimeOffset.UtcNow - heartbeatAt.ToUniversalTime();
+            if (heartbeatAge > TimeSpan.FromSeconds(10))
+            {
+                return new ComponentStatus(
+                    "Windows Runner",
+                    ComponentState.Warning,
+                    $"heartbeat stale · {heartbeatAge.TotalSeconds:0}초");
+            }
+
             using var process = Process.GetProcessById(pid);
             if (process.HasExited)
             {

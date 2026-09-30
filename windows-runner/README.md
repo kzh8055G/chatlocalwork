@@ -78,3 +78,11 @@ Windows runtime 폴더는 Docker에 다음 경로로 bind mount됩니다.
 ```
 
 LocalWorkMCP는 같은 queue를 읽고 request/response JSON으로 Runner와 통신합니다.
+
+## Runtime 안정성
+
+- `ready.json`의 `heartbeatAt`을 약 2초마다 갱신합니다.
+- heartbeat가 10초 이상 stale이면 StartMCP가 Runner를 재시작합니다.
+- 24시간 이상 남은 orphan `requests/` / `responses/` 파일은 자동 삭제합니다.
+- `runner.log`와 `launcher.log`는 약 4MB를 넘으면 최근 약 2MB만 유지합니다.
+- 정상 Stop에서는 request/response queue와 `start-state.json`을 정리합니다.

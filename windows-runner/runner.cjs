@@ -24,6 +24,10 @@ const stateDir = path.join(queueDir, "state");
 const logDir = path.join(queueDir, "logs");
 const readyFile = path.join(stateDir, "ready.json");
 const logFile = path.join(logDir, "runner.log");
+const runnerStartedAt = new Date().toISOString();
+const staleQueueMaxAgeMs = 24 * 60 * 60 * 1000;
+const maxLogBytes = 4 * 1024 * 1024;
+const retainedLogBytes = 2 * 1024 * 1024;
 
 for (const dir of [requestsDir, responsesDir, stateDir, logDir]) {
   fs.mkdirSync(dir, { recursive: true });
@@ -34,6 +38,52 @@ const allowedExecutables = new Set((config.allowedExecutables || []).map(x => St
 const blockedExecutables = new Set((config.blockedExecutables || []).map(x => String(x).toLowerCase()));
 const defaultTimeoutMs = Number(config.defaultTimeoutMs || 120000);
 const maxOutputBytes = Number(config.maxOutputBytes || 1048576);
+
+function trimFileTail(file, maxBytes = maxLogBytes, keepBytes = retainedLogBytes) {
+  try {
+    const stat = fs.statSync(file);
+    if (stat.size <= maxBytes) return;
+
+    const fd = fs.openSync(file, "r");
+    try {
+      const bytesToRead = Math.min(keepBytes, stat.size);
+      const buffer = Buffer.alloc(bytesToRead);
+      fs.readSync(fd, buffer, 0, bytesToRead, stat.size - bytesToRead);
+      let text = buffer.toString("utf8");
+      const firstNewLine = text.indexOf("\n");
+      if (firstNewLine >= 0) text = text.slice(firstNewLine + 1);
+      fs.writeFileSync(file, text, "utf8");
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch {}
+}
+
+function cleanupStaleQueue() {
+  const cutoff = Date.now() - staleQueueMaxAgeMs;
+  let removed = 0;
+
+  for (const dir of [requestsDir, responsesDir]) {
+    let names = [];
+    try { names = fs.readdirSync(dir); } catch { continue; }
+
+    for (const name of names) {
+      if (!name.endsWith(".json") && !name.includes(".tmp")) continue;
+      const file = path.join(dir, name);
+      try {
+        if (fs.statSync(file).mtimeMs < cutoff) {
+          fs.unlinkSync(file);
+          removed++;
+        }
+      } catch {}
+    }
+  }
+
+  return removed;
+}
+
+trimFileTail(logFile);
+const staleRemovedAtStartup = cleanupStaleQueue();
 
 function log(message) {
   const line = "[" + new Date().toISOString() + "] " + message;
@@ -137,19 +187,41 @@ function execute(executable, argv, workdir, timeoutMs) {
   });
 }
 
-writeJsonAtomic(readyFile, {
-  ok: true,
-  pid: process.pid,
-  platform: process.platform,
-  runtime: "node",
-  executionMode: "direct-process",
-  shell: false,
-  workspaceRoot,
-  queueDir,
-  startedAt: new Date().toISOString(),
-});
+function writeReadyState() {
+  writeJsonAtomic(readyFile, {
+    ok: true,
+    pid: process.pid,
+    platform: process.platform,
+    runtime: "node",
+    executionMode: "direct-process",
+    shell: false,
+    workspaceRoot,
+    queueDir,
+    startedAt: runnerStartedAt,
+    heartbeatAt: new Date().toISOString(),
+  });
+}
 
+function removeReadyStateIfOwned() {
+  try {
+    const ready = JSON.parse(fs.readFileSync(readyFile, "utf8"));
+    if (Number(ready?.pid) === process.pid) fs.unlinkSync(readyFile);
+  } catch {}
+}
+
+writeReadyState();
 log("READY pid=" + process.pid + " workspace=" + workspaceRoot);
+if (staleRemovedAtStartup > 0) log("CLEANUP staleQueueFiles=" + staleRemovedAtStartup);
+
+setInterval(() => {
+  try { writeReadyState(); } catch (err) { log("heartbeat error: " + (err?.message || err)); }
+}, 2000);
+
+setInterval(() => {
+  const removed = cleanupStaleQueue();
+  if (removed > 0) log("CLEANUP staleQueueFiles=" + removed);
+  trimFileTail(logFile);
+}, 10 * 60 * 1000);
 
 let busy = false;
 
@@ -222,6 +294,9 @@ async function processOne() {
 
 process.on("uncaughtException", err => log("uncaughtException: " + (err.stack || err)));
 process.on("unhandledRejection", err => log("unhandledRejection: " + (err?.stack || err)));
+process.on("exit", removeReadyStateIfOwned);
+process.on("SIGINT", () => process.exit(0));
+process.on("SIGTERM", () => process.exit(0));
 
 setInterval(processOne, 200);
 processOne();
