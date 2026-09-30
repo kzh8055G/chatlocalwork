@@ -121,8 +121,10 @@ internal sealed class MainForm : Form
             AppendManagerLog($"Repository: {_paths.RepositoryRoot}");
             AppendManagerLog($"Workspace : {_paths.WorkspaceRoot}");
             AppendManagerLog($"Runtime   : {_paths.RunnerQueueDirectory}");
+            AppendManagerLog("Manager 시작 · MCP 자동 시작");
+
             await RefreshStatusAsync();
-            _statusTimer.Start();
+            await RunLifecycleAsync(start: true);
         };
 
         FormClosing += MainForm_FormClosing;

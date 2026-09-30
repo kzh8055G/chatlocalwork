@@ -8,8 +8,10 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 
 주요 기능:
 
-- Start MCP
-- Stop MCP
+- Manager 실행 시 MCP 자동 Start
+- Manager 종료 시 MCP 자동 Stop(기본 ON)
+- 수동 Start MCP
+- 수동 Stop MCP
 - Windows Runner 상태 확인
 - Docker `workmachine` 상태 확인
 - Tailscale 상태 확인
