@@ -31,9 +31,11 @@ internal sealed class MainForm : Form
     private readonly CheckBox _stopMcpOnExitCheckBox = new()
     {
         Text = "Manager 종료 시 MCP도 종료",
-        AutoSize = true,
+        AutoSize = false,
+        Size = new Size(240, 40),
+        TextAlign = ContentAlignment.MiddleLeft,
         Checked = true,
-        Margin = new Padding(12, 8, 0, 0),
+        Margin = new Padding(12, 0, 0, 0),
     };
 
     private readonly RichTextBox _logBox = new()
@@ -142,7 +144,7 @@ internal sealed class MainForm : Form
         };
 
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 76));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 74));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 238));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
