@@ -27,6 +27,7 @@ internal sealed class MainForm : Form
     private readonly Button _stopButton = new() { Text = "Stop MCP", AutoSize = true };
     private readonly Button _refreshButton = new() { Text = "상태 새로 고침", AutoSize = true };
     private readonly Button _environmentButton = new() { Text = "환경 점검", AutoSize = true };
+    private readonly Button _tailscaleLoginButton = new() { Text = "Tailscale 로그인", AutoSize = true };
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
     private readonly Button _openRepositoryButton = new() { Text = "앱 폴더", AutoSize = true };
     private readonly Button _clearLogButton = new() { Text = "로그 지우기", AutoSize = true };
@@ -114,6 +115,7 @@ internal sealed class MainForm : Form
         _stopButton.Click += async (_, _) => await RunLifecycleAsync(start: false);
         _refreshButton.Click += async (_, _) => await RefreshStatusAsync();
         _environmentButton.Click += async (_, _) => await InspectEnvironmentAsync(showDialog: true);
+        _tailscaleLoginButton.Click += async (_, _) => await RunTailscaleLoginAsync();
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();
         _clearLogButton.Click += (_, _) => _logBox.Clear();
@@ -131,7 +133,20 @@ internal sealed class MainForm : Form
             AppendManagerLog("Manager 시작 · 환경 점검");
 
             await RefreshStatusAsync();
-            await RunLifecycleAsync(start: true);
+
+            var environmentReady = await InspectEnvironmentAsync(showDialog: false);
+            if (environmentReady)
+            {
+                await RunLifecycleAsync(start: true);
+            }
+            else
+            {
+                SetOperationStatus(
+                    "환경 준비 필요",
+                    "환경 점검 결과를 확인하세요. Tailscale 로그인이 필요하면 로그인 버튼을 사용하세요.",
+                    Color.DarkOrange);
+                _statusTimer.Start();
+            }
         };
 
         FormClosing += MainForm_FormClosing;
@@ -217,6 +232,7 @@ internal sealed class MainForm : Form
                      _stopButton,
                      _refreshButton,
                      _environmentButton,
+                     _tailscaleLoginButton,
                      _loadLogButton,
                      _openRepositoryButton,
                      _clearLogButton,
@@ -753,6 +769,87 @@ internal sealed class MainForm : Form
         }
     }
 
+    private async Task RunTailscaleLoginAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        SetBusy(true, "TAILSCALE_LOGIN");
+        _statusTimer.Stop();
+        SetOperationStatus(
+            "Tailscale 로그인 진행 중",
+            "브라우저가 열리면 Tailscale 인증을 완료하세요.",
+            Color.SteelBlue);
+
+        var shouldStart = false;
+
+        try
+        {
+            var loggedIn = await _bootstrapService.StartTailscaleLoginAsync(
+                AppendManagerLog);
+
+            if (!loggedIn)
+            {
+                SetOperationStatus(
+                    "Tailscale 로그인 미완료",
+                    "로그인 상태를 확인한 뒤 다시 시도하세요.",
+                    Color.DarkOrange);
+                return;
+            }
+
+            var ready = await InspectEnvironmentCoreAsync();
+            if (!ready)
+            {
+                SetOperationStatus(
+                    "환경 준비 필요",
+                    "Tailscale 로그인은 완료됐지만 다른 준비 항목이 남아 있습니다.",
+                    Color.DarkOrange);
+                return;
+            }
+
+            SetOperationStatus(
+                "환경 READY",
+                "필수 환경 구성이 완료되었습니다. MCP를 시작합니다.",
+                Color.ForestGreen);
+            shouldStart = true;
+        }
+        catch (Exception ex)
+        {
+            AppendManagerLog($"Tailscale 로그인 실패 · {ex.Message}");
+            SetOperationStatus(
+                "Tailscale 로그인 오류",
+                ex.Message,
+                Color.Firebrick);
+        }
+        finally
+        {
+            SetBusy(false);
+            await RefreshStatusAsync();
+            _statusTimer.Start();
+        }
+
+        if (shouldStart)
+        {
+            await RunLifecycleAsync(start: true);
+        }
+    }
+
+    private async Task<bool> InspectEnvironmentCoreAsync()
+    {
+        var result = await _bootstrapService.PrepareAsync(
+            AppendManagerLog);
+
+        foreach (var component in result.Components)
+        {
+            AppendManagerLog(
+                $"환경 · {component.Name} · {component.State} · {component.Detail}");
+        }
+
+        return result.Ready;
+    }
+
     private void OpenRepository()
     {
         try
@@ -777,6 +874,7 @@ internal sealed class MainForm : Form
         _stopButton.Enabled = !busy;
         _refreshButton.Enabled = !busy;
         _environmentButton.Enabled = !busy;
+        _tailscaleLoginButton.Enabled = !busy;
         _loadLogButton.Enabled = !busy;
 
         _startButton.Text = busy && operation == "START" ? "Starting..." : "Start MCP";
@@ -784,9 +882,13 @@ internal sealed class MainForm : Form
 
         if (busy)
         {
-            _overallLabel.Text = operation == "START"
-                ? "작업 중: STARTING..."
-                : "작업 중: STOPPING...";
+            _overallLabel.Text = operation switch
+            {
+                "START" => "작업 중: STARTING...",
+                "STOP" => "작업 중: STOPPING...",
+                "TAILSCALE_LOGIN" => "작업 중: TAILSCALE LOGIN...",
+                _ => "작업 중...",
+            };
             _overallLabel.ForeColor = Color.SteelBlue;
         }
     }

@@ -96,7 +96,10 @@ Docker mount:
 - 저장소 외부에서 실행된 Manager도 설치형 기본 경로로 시작 가능
 - 설치형 기본값: `%LOCALAPPDATA%\ChatLocalWork\app\current`
 - 기본 workspace: 사용자 Documents의 `ChatLocalWorkWorkspace`
-- Manager `환경 점검`으로 App package / Node / Docker / Tailscale / MCP config 상태 확인
+- Manager `환경 점검`으로 App source / Node / Docker / Tailscale / MCP config 상태 확인
+- Manager 시작 시 bootstrap READY일 때만 MCP 자동 Start
+- Tailscale 로그인이 필요한 경우 자동 `tailscale up`을 실행하지 않고 `Tailscale 로그인` 버튼으로 명시적 사용자 동작을 요구
+- 로그인 완료 후 `.env` 재구성/재점검을 수행하고 전체 READY이면 MCP 자동 Start
 - 설치형 최초 실행에서 기본 app/workspace/node 경로를 `app-config.json`으로 영속화하고 기존 설정은 덮어쓰지 않음
 - Installer의 `.chatlocalwork-version`이 있으면 commit hash를 `appVersion`으로 기록
 - Tailscale이 설치·로그인되어 있고 app source가 준비된 경우 `.env`의 `MCP_PUBLIC_URL`과 `SHARED_PATH` 자동 구성
@@ -153,6 +156,8 @@ kzh8055G/chatlocalwork
 - 격리 설치 후 `--check` 전체 READY 재확인
 - 격리 clone HEAD가 당시 `origin/main` commit과 일치함을 확인
 - Manager Release build: 경고 0 / 오류 0
+- Tailscale `status --json` 읽기 전용 검증에서 현재 `BackendState=Running` 형식 확인
+- Tailscale 로그인 명령은 테스트 중 실행하지 않아 현재 PC 로그인 상태를 변경하지 않음
 - Manager에서 Start MCP 성공
 - LocalWorkMCP 연결 성공
 - `windows_exec`를 통한 `git.exe --version` 성공
@@ -201,8 +206,8 @@ kzh8055G/chatlocalwork
 
 - Installer 설치 완료 상태/재부팅 요구 처리 강화
 - Installer 업데이트/롤백 정책 정리
-- Manager 최초 실행에서 Tailscale 로그인 안내/완료 흐름 강화
-- Manager 최초 실행 완료 후 MCP 설정/자동 Start UX 정리
+- Manager 최초 실행 완료 후 Docker 재부팅/초기 실행 요구 상태 처리 강화
+- 설치형 Manager 실제 PC/VM E2E 검증
 - 최종 소형 설치 패키지/업데이트 전략 확정
 - Start/Stop 오류 메시지와 로그 가독성 추가 개선
 - 필요 시 desktop GUI control 기능 검토

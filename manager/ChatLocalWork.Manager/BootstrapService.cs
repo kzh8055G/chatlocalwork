@@ -64,6 +64,50 @@ internal sealed class BootstrapService
         return await InspectAsync(cancellationToken);
     }
 
+    public async Task<bool> StartTailscaleLoginAsync(
+        Action<string> log,
+        CancellationToken cancellationToken = default)
+    {
+        var tailscale = ExecutableLocator.FindTailscale();
+        if (tailscale is null)
+        {
+            log("Tailscale 로그인 · tailscale.exe 없음");
+            return false;
+        }
+
+        if (await IsTailscaleLoggedInAsync(tailscale, cancellationToken))
+        {
+            log("Tailscale 로그인 · 이미 로그인되어 있습니다.");
+            return true;
+        }
+
+        log("Tailscale 로그인 · 브라우저 인증을 시작합니다.");
+
+        var workingDirectory = Directory.Exists(_paths.AppRoot)
+            ? _paths.AppRoot
+            : _paths.ChatLocalWorkDataDirectory;
+
+        var result = await ProcessRunner.RunAsync(
+            tailscale,
+            new[] { "up" },
+            workingDirectory,
+            TimeSpan.FromMinutes(10),
+            cancellationToken: cancellationToken);
+
+        if (!result.Success)
+        {
+            var detail = (result.StandardError + Environment.NewLine + result.StandardOutput).Trim();
+            log($"Tailscale 로그인 실패 · {(string.IsNullOrWhiteSpace(detail) ? $"ExitCode={result.ExitCode}" : detail)}");
+            return false;
+        }
+
+        var ready = await IsTailscaleLoggedInAsync(tailscale, cancellationToken);
+        log(ready
+            ? "Tailscale 로그인 · 완료"
+            : "Tailscale 로그인 · 명령은 완료됐지만 RUNNING 상태가 아닙니다.");
+        return ready;
+    }
+
     public async Task<BootstrapResult> InspectAsync(
         CancellationToken cancellationToken = default)
     {

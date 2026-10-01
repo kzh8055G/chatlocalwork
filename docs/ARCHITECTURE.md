@@ -213,7 +213,10 @@ PowerShell/cmd를 거치지 않고 `git.exe`, `dotnet.exe` 등을 direct-process
   - 각 구성 요소 상태 조회
   - Runner 로그 표시
   - 설치형 경로와 개발 저장소 경로를 분리
-  - App package / Node / Docker / Tailscale / MCP config bootstrap 점검
+  - App source / Node / Docker / Tailscale / MCP config bootstrap 점검
+  - Manager 시작 시 bootstrap이 READY인 경우에만 MCP 자동 Start
+  - Tailscale 미로그인 상태에서는 자동 Start를 막고 사용자 명시 동작을 기다림
+  - `Tailscale 로그인` 버튼에서만 `tailscale up`을 실행
   - 설치형 최초 실행에서 기본 경로를 `app-config.json`으로 영속화
   - Installer가 기록한 `.chatlocalwork-version`을 `appVersion`으로 반영
   - Tailscale 로그인 완료 후 MCP public URL과 workspace 설정 자동 생성
