@@ -102,9 +102,9 @@ LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 
 `installer/ChatLocalWork.Installer/`에 위치합니다.
 
-- Docker Desktop / Tailscale 설치 책임
+- Git / Docker Desktop / Tailscale 설치 책임
 - ChatLocalWork 전용 Portable Node LTS 다운로드/배치
-- 향후 ChatLocalWork app package 배치까지 담당
+- GitHub `kzh8055G/chatlocalwork`를 `%LOCALAPPDATA%\ChatLocalWork\app\current`에 clone
 - Manager에는 외부 의존성 설치 책임을 두지 않음
 
 현재 Installer는 `--check`, `--install` 모드를 제공합니다.
@@ -120,6 +120,7 @@ LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 - Funnel 상태
 - MCP `/health` 상태
 - 설치형 환경 bootstrap 점검 및 최초 실행 설정
+- 최초 설치형 실행에서 `app-config.json` 생성(기존 설정은 보존)
 - Runner 로그 확인
 
 설치형 실행 시 기본 경로는 다음과 같습니다.

@@ -19,6 +19,8 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 - Local MCP `/health` 확인
 - 설치형 환경 bootstrap 점검(App package / Node / Docker / Tailscale / MCP config)
 - `환경 점검` 버튼으로 설치 준비 상태 확인
+- 설치형 최초 실행에서 `app-config.json` 자동 생성(기존 설정은 보존)
+- `.chatlocalwork-version`이 있으면 `appVersion`에 반영
 - Tailscale 로그인 완료 시 MCP `.env`의 public URL/workspace 설정 자동 생성
 - 외부 의존성 설치는 수행하지 않으며 `installer/`가 담당
 - Runner 로그 확인

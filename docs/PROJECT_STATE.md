@@ -97,14 +97,18 @@ Docker mount:
 - 설치형 기본값: `%LOCALAPPDATA%\ChatLocalWork\app\current`
 - 기본 workspace: 사용자 Documents의 `ChatLocalWorkWorkspace`
 - Manager `환경 점검`으로 App package / Node / Docker / Tailscale / MCP config 상태 확인
-- Tailscale이 설치·로그인되어 있고 app package가 준비된 경우 `.env`의 `MCP_PUBLIC_URL`과 `SHARED_PATH` 자동 구성
+- 설치형 최초 실행에서 기본 app/workspace/node 경로를 `app-config.json`으로 영속화하고 기존 설정은 덮어쓰지 않음
+- Installer의 `.chatlocalwork-version`이 있으면 commit hash를 `appVersion`으로 기록
+- Tailscale이 설치·로그인되어 있고 app source가 준비된 경우 `.env`의 `MCP_PUBLIC_URL`과 `SHARED_PATH` 자동 구성
 - Installer와 Manager 책임을 분리
 - Manager는 환경 점검과 최초 실행 설정만 담당하며 Docker/Tailscale/Node 설치는 수행하지 않음
 - 별도 `ChatLocalWork.Installer` 프로젝트 추가
-- Installer `--check`로 Docker Desktop / Tailscale / Portable Node 상태 확인
-- Installer `--install`로 누락된 Docker Desktop / Tailscale을 winget으로 설치
+- Installer `--check`로 Git / Docker Desktop / Tailscale / Portable Node / ChatLocalWork app 상태 확인
+- Installer `--install`로 누락된 Git / Docker Desktop / Tailscale을 winget으로 설치
 - Installer가 nodejs.org에서 현재 Windows x64 LTS를 조회해 Portable Node를 `%LOCALAPPDATA%\ChatLocalWork\tools\node`에 배치
-- ChatLocalWork app package 자동 다운로드/배치는 다음 Installer 단계로 남음
+- Installer가 GitHub `kzh8055G/chatlocalwork`의 `main`을 staging clone 후 `%LOCALAPPDATA%\ChatLocalWork\app\current`에 배치
+- clone된 commit hash를 `.chatlocalwork-version`에 기록
+- `--data-root`, `--workspace-root` override로 실제 사용자 설치 경로를 건드리지 않는 격리 설치 검증 지원
 
 ### 설치형 경로 분리
 
@@ -113,7 +117,7 @@ Docker mount:
 - Start/Stop이 `CHATLOCALWORK_WORKSPACE_ROOT`를 통해 동일 workspace 사용
 - Docker `SHARED_PATH`를 실행 시 workspaceRoot로 강제 전달하여 로컬 `.env` 절대경로 의존 제거
 - ChatLocalWork 전용 portable Node 경로 지원
-- Git이 없는 Release 설치본은 `appVersion`을 source identity로 사용하여 fast path 유지
+- 설치형 app clone은 Git HEAD 또는 `appVersion`을 source identity로 사용하여 fast path 유지
 - 설정 파일이 없으면 기존 개발 저장소 탐색 방식으로 fallback
 
 ### Start/Stop 안정화
@@ -145,7 +149,9 @@ kzh8055G/chatlocalwork
 ## 현재 검증 완료
 
 - Installer Release build: 경고 0 / 오류 0
-- Installer `--check`: Docker Desktop / Tailscale READY, 전용 Portable Node MISSING 상태 정상 판정
+- Installer 격리 E2E 설치 성공: Git/Docker/Tailscale 기존 설치 감지 → Node.js LTS 다운로드 → GitHub clone → 전체 READY
+- 격리 설치 후 `--check` 전체 READY 재확인
+- 격리 clone HEAD가 당시 `origin/main` commit과 일치함을 확인
 - Manager Release build: 경고 0 / 오류 0
 - Manager에서 Start MCP 성공
 - LocalWorkMCP 연결 성공
@@ -186,16 +192,17 @@ kzh8055G/chatlocalwork
 - `windows-runner/runner-config.json`
 - `localworkmcp/src/windows-runner-tools.ts`
 - `localworkmcp/tunneling/docker-compose.yml`
+- `installer/ChatLocalWork.Installer/`
 - `manager/ChatLocalWork.Manager/`
 
 ## 남은 작업
 
 현재 핵심 연결 구조는 동작한다. 이후 작업은 운영성/완성도 개선 성격이다.
 
-- Installer에서 ChatLocalWork app package 자동 다운로드/배치
 - Installer 설치 완료 상태/재부팅 요구 처리 강화
-- Manager 최초 실행에서 `app-config.json` 영속화
-- Manager 최초 실행에서 Tailscale 로그인 안내/완료 후 MCP 설정 확정
+- Installer 업데이트/롤백 정책 정리
+- Manager 최초 실행에서 Tailscale 로그인 안내/완료 흐름 강화
+- Manager 최초 실행 완료 후 MCP 설정/자동 Start UX 정리
 - 최종 소형 설치 패키지/업데이트 전략 확정
 - Start/Stop 오류 메시지와 로그 가독성 추가 개선
 - 필요 시 desktop GUI control 기능 검토

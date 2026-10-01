@@ -201,9 +201,10 @@ PowerShell/cmd를 거치지 않고 `git.exe`, `dotnet.exe` 등을 direct-process
 
 - `installer/ChatLocalWork.Installer/`
   - 설치 전용 bootstrapper
-  - Docker Desktop / Tailscale 누락 여부 확인 및 winget 설치
+  - Git / Docker Desktop / Tailscale 누락 여부 확인 및 winget 설치
   - nodejs.org의 현재 Windows x64 LTS ZIP을 내려받아 Portable Node 배치
-  - 향후 ChatLocalWork app package 배치까지 담당
+  - GitHub `kzh8055G/chatlocalwork`의 `main`을 staging clone 후 `app\current`로 교체
+  - clone된 commit을 `.chatlocalwork-version`에 기록
 
 ### Manager
 
@@ -213,7 +214,10 @@ PowerShell/cmd를 거치지 않고 `git.exe`, `dotnet.exe` 등을 direct-process
   - Runner 로그 표시
   - 설치형 경로와 개발 저장소 경로를 분리
   - App package / Node / Docker / Tailscale / MCP config bootstrap 점검
+  - 설치형 최초 실행에서 기본 경로를 `app-config.json`으로 영속화
+  - Installer가 기록한 `.chatlocalwork-version`을 `appVersion`으로 반영
   - Tailscale 로그인 완료 후 MCP public URL과 workspace 설정 자동 생성
+  - 기존 `app-config.json`은 덮어쓰지 않음
   - 외부 의존성 설치는 수행하지 않음
 
 설치형 기본 레이아웃:

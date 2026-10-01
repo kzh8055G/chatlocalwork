@@ -190,16 +190,19 @@ StopMCP에 기존 위치 cleanup 코드가 남아 있는 것은 마이그레이�
 
 현재 Installer는 다음을 처리한다.
 
+- Git: winget
 - Docker Desktop: winget
 - Tailscale: winget
 - Portable Node: nodejs.org의 현재 Windows x64 LTS ZIP 다운로드
+- ChatLocalWork app: GitHub `kzh8055G/chatlocalwork`의 `main`을 `app\current`에 clone
 
 확인 순서:
 
 1. `ChatLocalWork.Installer.exe --check`로 누락 항목 확인
 2. winget 사용 가능 여부와 인터넷 연결 확인
-3. Docker/Tailscale 설치 중 표시되는 UAC 또는 설치 UI 확인
+3. Git/Docker/Tailscale 설치 중 표시되는 UAC 또는 설치 UI 확인
 4. Docker Desktop 설치 후 재부팅/최초 실행 필요 여부 확인
 5. Portable Node 경로 `%LOCALAPPDATA%\ChatLocalWork\tools\node\node.exe` 확인
+6. `%LOCALAPPDATA%\ChatLocalWork\app\current\.git` 및 `scripts\windows\StartMCP.cjs` 존재 여부 확인
 
-ChatLocalWork app package 자동 배치는 아직 다음 Installer 단계다.
+설치 로직만 격리 검증할 때는 `--data-root`와 `--workspace-root`를 임시 경로로 지정한다.

@@ -43,6 +43,11 @@ internal sealed class BootstrapService
         Directory.CreateDirectory(_paths.ChatLocalWorkDataDirectory);
         Directory.CreateDirectory(_paths.WorkspaceRoot);
 
+        if (_paths.HasValidAppRoot())
+        {
+            EnsureInstalledAppConfig(log);
+        }
+
         var tailscale = ExecutableLocator.FindTailscale();
         if (tailscale is not null)
         {
@@ -65,13 +70,13 @@ internal sealed class BootstrapService
         var components = new List<BootstrapComponentStatus>();
 
         components.Add(new BootstrapComponentStatus(
-            "App package",
+            "App source",
             _paths.HasValidAppRoot()
                 ? BootstrapComponentState.Ready
                 : BootstrapComponentState.Missing,
             _paths.HasValidAppRoot()
                 ? _paths.AppRoot
-                : "ChatLocalWork app package 없음"));
+                : "ChatLocalWork app source 없음"));
 
         var node = ExecutableLocator.FindNode(_paths.NodePath);
         components.Add(new BootstrapComponentStatus(
@@ -142,6 +147,49 @@ internal sealed class BootstrapService
             userAction,
             ready ? "READY" : "환경 준비 필요",
             components);
+    }
+
+    private void EnsureInstalledAppConfig(Action<string> log)
+    {
+        if (File.Exists(_paths.AppConfigFile))
+        {
+            return;
+        }
+
+        var configDirectory = Path.GetDirectoryName(_paths.AppConfigFile)
+            ?? throw new InvalidOperationException(
+                "app-config.json directory를 확인할 수 없습니다.");
+        Directory.CreateDirectory(configDirectory);
+
+        var versionFile = Path.Combine(
+            _paths.AppRoot,
+            ".chatlocalwork-version");
+        var appVersion = File.Exists(versionFile)
+            ? File.ReadAllText(versionFile).Trim()
+            : null;
+
+        var config = new
+        {
+            appRoot = _paths.AppRoot,
+            workspaceRoot = _paths.WorkspaceRoot,
+            nodePath = _paths.NodePath,
+            appVersion = string.IsNullOrWhiteSpace(appVersion)
+                ? null
+                : appVersion,
+        };
+
+        var json = JsonSerializer.Serialize(
+            config,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            });
+
+        File.WriteAllText(
+            _paths.AppConfigFile,
+            json + Environment.NewLine);
+
+        log($"Bootstrap · app-config 생성 · {_paths.AppConfigFile}");
     }
 
     private async Task<string?> TryGetTailscalePublicUrlAsync(

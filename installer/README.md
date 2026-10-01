@@ -6,16 +6,32 @@ ChatLocalWork의 설치 단계 전용 bootstrapper입니다.
 
 Installer가 담당합니다.
 
-- Docker Desktop 설치 여부 확인 및 설치
-- Tailscale 설치 여부 확인 및 설치
+- Git 설치 여부 확인 및 winget 설치
+- Docker Desktop 설치 여부 확인 및 winget 설치
+- Tailscale 설치 여부 확인 및 winget 설치
 - ChatLocalWork 전용 Portable Node LTS 다운로드/배치
-- 이후 단계에서 ChatLocalWork app package 배치
+- GitHub `kzh8055G/chatlocalwork`의 `main`을 설치 경로에 clone
+- 설치 대상 workspace 디렉터리 준비
 
-Manager가 담당하지 않습니다.
+Manager는 설치가 끝난 뒤 최초 실행에서 기본 경로를 `app-config.json`에 저장하고, Tailscale 로그인 상태와 MCP public URL, `.env` 등 실행 설정을 구성합니다.
 
-Manager는 설치가 끝난 뒤 최초 실행에서 workspace, Tailscale 로그인 상태, MCP public URL, .env, app-config 등 실행 설정을 구성합니다.
+## 설치 경로
 
-## 현재 사용법
+기본값:
+
+```text
+%LOCALAPPDATA%\ChatLocalWork\
+├─ app\current\
+│  ├─ localworkmcp\
+│  ├─ scripts\
+│  ├─ windows-runner\
+│  └─ .chatlocalwork-version
+└─ tools\node\node.exe
+
+Documents\ChatLocalWorkWorkspace\
+```
+
+## 사용법
 
 점검만 수행:
 
@@ -23,16 +39,25 @@ Manager는 설치가 끝난 뒤 최초 실행에서 workspace, Tailscale 로그�
 ChatLocalWork.Installer.exe --check
 ```
 
-누락 의존성 설치:
+설치:
 
 ```text
 ChatLocalWork.Installer.exe --install
 ```
 
-Docker Desktop과 Tailscale은 winget을 사용합니다. Portable Node는 nodejs.org의 현재 Windows x64 LTS ZIP을 받아 다음 위치에 배치합니다.
+격리 테스트 또는 개발 검증에서는 실제 LocalAppData를 건드리지 않도록 경로를 바꿀 수 있습니다.
 
 ```text
-%LOCALAPPDATA%\ChatLocalWork\tools\node\node.exe
+ChatLocalWork.Installer.exe --install ^
+  --data-root C:\Temp\ChatLocalWork-Test ^
+  --workspace-root C:\Temp\ChatLocalWork-Workspace
 ```
 
-현재 단계에서는 ChatLocalWork app package 자체의 다운로드/배치는 아직 구현하지 않았습니다.
+## 설치 방식
+
+- Git / Docker Desktop / Tailscale: winget
+- Portable Node: nodejs.org의 현재 Windows x64 LTS ZIP
+- ChatLocalWork app: GitHub 저장소를 `--depth 1 --branch main`으로 staging clone 후 `app\current`로 교체
+- clone된 commit hash는 `.chatlocalwork-version`에 기록
+
+현재 Installer는 app 설정을 생성하지 않습니다. `app-config.json`, Tailscale 로그인 및 MCP 환경 설정은 Manager 최초 실행의 책임입니다.
