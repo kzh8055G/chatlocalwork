@@ -18,6 +18,7 @@ internal sealed class MainForm : Form
     private readonly AppPaths _paths;
     private readonly MpcLifecycleService _lifecycleService;
     private readonly StatusService _statusService;
+    private readonly BootstrapService _bootstrapService;
     private readonly Dictionary<string, Label> _stateLabels = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Label> _detailLabels = new(StringComparer.OrdinalIgnoreCase);
     private readonly System.Windows.Forms.Timer _statusTimer;
@@ -25,6 +26,7 @@ internal sealed class MainForm : Form
     private readonly Button _startButton = new() { Text = "Start MCP", AutoSize = true };
     private readonly Button _stopButton = new() { Text = "Stop MCP", AutoSize = true };
     private readonly Button _refreshButton = new() { Text = "상태 새로 고침", AutoSize = true };
+    private readonly Button _environmentButton = new() { Text = "환경 점검", AutoSize = true };
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
     private readonly Button _openRepositoryButton = new() { Text = "앱 폴더", AutoSize = true };
     private readonly Button _clearLogButton = new() { Text = "로그 지우기", AutoSize = true };
@@ -94,6 +96,7 @@ internal sealed class MainForm : Form
         _paths = paths;
         _lifecycleService = new MpcLifecycleService(paths);
         _statusService = new StatusService(paths);
+        _bootstrapService = new BootstrapService(paths);
 
         var settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile);
         _stopMcpOnExitCheckBox.Checked = settings.StopMcpOnExit;
@@ -110,6 +113,7 @@ internal sealed class MainForm : Form
         _startButton.Click += async (_, _) => await RunLifecycleAsync(start: true);
         _stopButton.Click += async (_, _) => await RunLifecycleAsync(start: false);
         _refreshButton.Click += async (_, _) => await RefreshStatusAsync();
+        _environmentButton.Click += async (_, _) => await InspectEnvironmentAsync(showDialog: true);
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();
         _clearLogButton.Click += (_, _) => _logBox.Clear();
@@ -124,7 +128,7 @@ internal sealed class MainForm : Form
             AppendManagerLog($"Workspace : {_paths.WorkspaceRoot}");
             AppendManagerLog($"Layout    : {(_paths.InstalledLayout ? "installed" : "development")}");
             AppendManagerLog($"Runtime   : {_paths.RunnerQueueDirectory}");
-            AppendManagerLog("Manager 시작 · MCP 자동 시작");
+            AppendManagerLog("Manager 시작 · 환경 점검");
 
             await RefreshStatusAsync();
             await RunLifecycleAsync(start: true);
@@ -212,6 +216,7 @@ internal sealed class MainForm : Form
                      _startButton,
                      _stopButton,
                      _refreshButton,
+                     _environmentButton,
                      _loadLogButton,
                      _openRepositoryButton,
                      _clearLogButton,
@@ -694,6 +699,60 @@ internal sealed class MainForm : Form
         return text;
     }
 
+    private async Task<bool> InspectEnvironmentAsync(bool showDialog)
+    {
+        if (_busy)
+        {
+            return false;
+        }
+
+        try
+        {
+            var result = await _bootstrapService.PrepareAsync(
+                AppendManagerLog);
+
+            foreach (var component in result.Components)
+            {
+                AppendManagerLog(
+                    $"환경 · {component.Name} · {component.State} · {component.Detail}");
+            }
+
+            if (showDialog)
+            {
+                var details = string.Join(
+                    Environment.NewLine,
+                    result.Components.Select(
+                        component =>
+                            $"{component.Name}: {component.State} · {component.Detail}"));
+
+                MessageBox.Show(
+                    details,
+                    result.Ready ? "환경 READY" : "환경 준비 필요",
+                    MessageBoxButtons.OK,
+                    result.Ready
+                        ? MessageBoxIcon.Information
+                        : MessageBoxIcon.Warning);
+            }
+
+            return result.Ready;
+        }
+        catch (Exception ex)
+        {
+            AppendManagerLog($"환경 점검 실패 · {ex.Message}");
+
+            if (showDialog)
+            {
+                MessageBox.Show(
+                    ex.Message,
+                    "환경 점검 실패",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+
+            return false;
+        }
+    }
+
     private void OpenRepository()
     {
         try
@@ -707,7 +766,7 @@ internal sealed class MainForm : Form
         }
         catch (Exception ex)
         {
-            AppendManagerLog($"프로젝트 폴더 열기 실패 · {ex.Message}");
+            AppendManagerLog($"앱 폴더 열기 실패 · {ex.Message}");
         }
     }
 
@@ -717,6 +776,7 @@ internal sealed class MainForm : Form
         _startButton.Enabled = !busy;
         _stopButton.Enabled = !busy;
         _refreshButton.Enabled = !busy;
+        _environmentButton.Enabled = !busy;
         _loadLogButton.Enabled = !busy;
 
         _startButton.Text = busy && operation == "START" ? "Starting..." : "Start MCP";

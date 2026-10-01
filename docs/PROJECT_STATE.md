@@ -91,6 +91,15 @@ Docker mount:
 - Runner 로그 표시
 - 프로젝트 폴더 열기
 
+### Bootstrap 기반
+
+- 저장소 외부에서 실행된 Manager도 설치형 기본 경로로 시작 가능
+- 설치형 기본값: `%LOCALAPPDATA%\ChatLocalWork\app\current`
+- 기본 workspace: 사용자 Documents의 `ChatLocalWorkWorkspace`
+- Manager `환경 점검`으로 App package / Node / Docker / Tailscale / MCP config 상태 확인
+- Tailscale이 설치·로그인되어 있고 app package가 준비된 경우 `.env`의 `MCP_PUBLIC_URL`과 `SHARED_PATH` 자동 구성
+- Docker/Tailscale/Release package 자동 다운로드·설치는 별도 bootstrapper 단계로 남음
+
 ### 설치형 경로 분리
 
 - `%LOCALAPPDATA%\ChatLocalWork\config\app-config.json` 기반 설치형 경로 지원

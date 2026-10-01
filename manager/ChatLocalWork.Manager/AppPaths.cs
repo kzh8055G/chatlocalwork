@@ -77,8 +77,6 @@ internal sealed class AppPaths
             var workspaceRoot = RequireAbsolutePath(config.WorkspaceRoot, "workspaceRoot", appConfigFile);
             var nodePath = OptionalAbsolutePath(config.NodePath, "nodePath", appConfigFile);
 
-            ValidateAppRoot(appRoot, appConfigFile);
-
             return new AppPaths(
                 appRoot,
                 workspaceRoot,
@@ -89,18 +87,40 @@ internal sealed class AppPaths
                 installedLayout: true);
         }
 
-        var developmentAppRoot = DiscoverDevelopmentAppRoot();
-        var developmentWorkspaceRoot = Directory.GetParent(developmentAppRoot)?.FullName
-            ?? throw new InvalidOperationException("Workspace root could not be resolved.");
+        var developmentAppRoot = TryDiscoverDevelopmentAppRoot();
+        if (developmentAppRoot is not null)
+        {
+            var developmentWorkspaceRoot = Directory.GetParent(developmentAppRoot)?.FullName
+                ?? throw new InvalidOperationException("Workspace root could not be resolved.");
+
+            return new AppPaths(
+                developmentAppRoot,
+                developmentWorkspaceRoot,
+                nodePath: null,
+                appVersion: null,
+                dataDirectory,
+                appConfigFile,
+                installedLayout: false);
+        }
+
+        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        if (string.IsNullOrWhiteSpace(documents))
+        {
+            documents = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        }
+
+        var defaultAppRoot = Path.Combine(dataDirectory, "app", "current");
+        var defaultWorkspaceRoot = Path.Combine(documents, "ChatLocalWorkWorkspace");
+        var defaultNodePath = Path.Combine(dataDirectory, "tools", "node", "node.exe");
 
         return new AppPaths(
-            developmentAppRoot,
-            developmentWorkspaceRoot,
-            nodePath: null,
+            defaultAppRoot,
+            defaultWorkspaceRoot,
+            defaultNodePath,
             appVersion: null,
             dataDirectory,
             appConfigFile,
-            installedLayout: false);
+            installedLayout: true);
     }
 
     private static InstalledLayoutConfig LoadInstalledLayoutConfig(string appConfigFile)
@@ -150,20 +170,13 @@ internal sealed class AppPaths
         return Path.GetFullPath(value);
     }
 
-    private static void ValidateAppRoot(string appRoot, string appConfigFile)
+    public bool HasValidAppRoot()
     {
-        var startScript = Path.Combine(appRoot, "scripts", "windows", "StartMCP.cjs");
-        var composeFile = Path.Combine(appRoot, "localworkmcp", "tunneling", "docker-compose.yml");
-
-        if (!File.Exists(startScript) || !File.Exists(composeFile))
-        {
-            throw new InvalidOperationException(
-                $"Configured appRoot does not contain a valid ChatLocalWork installation. " +
-                $"Check {appConfigFile}. appRoot={appRoot}");
-        }
+        return File.Exists(StartScript) &&
+               File.Exists(Path.Combine(LocalWorkMcpRoot, "tunneling", "docker-compose.yml"));
     }
 
-    private static string DiscoverDevelopmentAppRoot()
+    private static string? TryDiscoverDevelopmentAppRoot()
     {
         DirectoryInfo? current = new(AppContext.BaseDirectory);
 
@@ -180,8 +193,6 @@ internal sealed class AppPaths
             current = current.Parent;
         }
 
-        throw new InvalidOperationException(
-            "ChatLocalWork app root was not found. " +
-            "Install ChatLocalWork or configure %LOCALAPPDATA%\\ChatLocalWork\\config\\app-config.json.");
+        return null;
     }
 }

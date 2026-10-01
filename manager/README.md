@@ -17,6 +17,9 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 - Tailscale 상태 확인
 - Tailscale Funnel 상태 확인
 - Local MCP `/health` 확인
+- 설치형 환경 bootstrap 점검(App package / Node / Docker / Tailscale / MCP config)
+- `환경 점검` 버튼으로 설치 준비 상태 확인
+- Tailscale 로그인 완료 시 MCP `.env`의 public URL/workspace 설정 자동 생성
 - Runner 로그 확인
 - 실행 로그 지우기 및 자동 길이 제한
 - Start/Stop 작업 중 중복 실행 방지
