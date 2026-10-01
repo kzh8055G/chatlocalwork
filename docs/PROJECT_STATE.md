@@ -98,7 +98,10 @@ Docker mount:
 - 기본 workspace: 사용자 Documents의 `ChatLocalWorkWorkspace`
 - Manager `환경 점검`으로 App package / Node / Docker / Tailscale / MCP config 상태 확인
 - Tailscale이 설치·로그인되어 있고 app package가 준비된 경우 `.env`의 `MCP_PUBLIC_URL`과 `SHARED_PATH` 자동 구성
-- Docker/Tailscale/Release package 자동 다운로드·설치는 별도 bootstrapper 단계로 남음
+- 설치형 환경에서 누락된 Docker Desktop / Tailscale을 `winget`으로 설치하는 첫 dependency installer 단계 추가
+- 실제 설치 실행은 Manager의 명시적 사용자 확인 후 수행
+- 개발 저장소에서 실행 중이면 dependency 자동 설치를 실행하지 않음
+- ChatLocalWork app package와 portable Node 자동 확보는 다음 bootstrap 단계로 남음
 
 ### 설치형 경로 분리
 
@@ -184,8 +187,11 @@ kzh8055G/chatlocalwork
 
 현재 핵심 연결 구조는 동작한다. 이후 작업은 운영성/완성도 개선 성격이다.
 
-- Manager UI/UX 개선
-- 설치/배포 패키지 검토
+- ChatLocalWork app package 자동 다운로드/설치
+- portable Node 자동 다운로드/검증
+- 설치 완료 후 `app-config.json` 영속화
+- Docker/Tailscale 설치 후 재부팅·로그인 요구 상태 처리 강화
+- 최종 소형 설치 패키지/업데이트 전략 확정
 - Start/Stop 오류 메시지와 로그 가독성 추가 개선
 - 필요 시 desktop GUI control 기능 검토
 - 문서와 설정 간 drift 방지

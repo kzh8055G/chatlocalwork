@@ -19,6 +19,7 @@ internal sealed class MainForm : Form
     private readonly MpcLifecycleService _lifecycleService;
     private readonly StatusService _statusService;
     private readonly BootstrapService _bootstrapService;
+    private readonly DependencyInstallerService _dependencyInstallerService;
     private readonly Dictionary<string, Label> _stateLabels = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Label> _detailLabels = new(StringComparer.OrdinalIgnoreCase);
     private readonly System.Windows.Forms.Timer _statusTimer;
@@ -27,6 +28,7 @@ internal sealed class MainForm : Form
     private readonly Button _stopButton = new() { Text = "Stop MCP", AutoSize = true };
     private readonly Button _refreshButton = new() { Text = "상태 새로 고침", AutoSize = true };
     private readonly Button _environmentButton = new() { Text = "환경 점검", AutoSize = true };
+    private readonly Button _installDependenciesButton = new() { Text = "필수 앱 설치", AutoSize = true };
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
     private readonly Button _openRepositoryButton = new() { Text = "앱 폴더", AutoSize = true };
     private readonly Button _clearLogButton = new() { Text = "로그 지우기", AutoSize = true };
@@ -97,6 +99,7 @@ internal sealed class MainForm : Form
         _lifecycleService = new MpcLifecycleService(paths);
         _statusService = new StatusService(paths);
         _bootstrapService = new BootstrapService(paths);
+        _dependencyInstallerService = new DependencyInstallerService();
 
         var settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile);
         _stopMcpOnExitCheckBox.Checked = settings.StopMcpOnExit;
@@ -114,6 +117,7 @@ internal sealed class MainForm : Form
         _stopButton.Click += async (_, _) => await RunLifecycleAsync(start: false);
         _refreshButton.Click += async (_, _) => await RefreshStatusAsync();
         _environmentButton.Click += async (_, _) => await InspectEnvironmentAsync(showDialog: true);
+        _installDependenciesButton.Click += async (_, _) => await InstallDependenciesAsync();
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();
         _clearLogButton.Click += (_, _) => _logBox.Clear();
@@ -217,6 +221,7 @@ internal sealed class MainForm : Form
                      _stopButton,
                      _refreshButton,
                      _environmentButton,
+                     _installDependenciesButton,
                      _loadLogButton,
                      _openRepositoryButton,
                      _clearLogButton,
@@ -753,6 +758,91 @@ internal sealed class MainForm : Form
         }
     }
 
+    private async Task InstallDependenciesAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        if (!_paths.InstalledLayout)
+        {
+            MessageBox.Show(
+                "개발 저장소에서는 의존성 자동 설치를 실행하지 않습니다.",
+                "필수 앱 설치",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        if (!_dependencyInstallerService.HasMissingPackages())
+        {
+            MessageBox.Show(
+                "Docker Desktop과 Tailscale이 이미 설치되어 있습니다.",
+                "필수 앱 설치",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            "누락된 Docker Desktop 또는 Tailscale을 winget으로 설치합니다.\n\n" +
+            "설치 과정에서 Windows 권한 요청이나 별도 설치 창이 표시될 수 있습니다. 계속할까요?",
+            "필수 앱 설치",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question);
+
+        if (confirm != DialogResult.Yes)
+        {
+            return;
+        }
+
+        SetBusy(true);
+        _statusTimer.Stop();
+        SetOperationStatus("환경 준비 중", "필수 외부 앱을 설치하고 있습니다.", Color.SteelBlue);
+
+        try
+        {
+            var result = await _dependencyInstallerService.InstallMissingAsync(AppendManagerLog);
+            SetOperationStatus(
+                result.Success ? "환경 준비 완료" : "환경 준비 실패",
+                result.Message,
+                result.Success ? Color.ForestGreen : Color.Firebrick);
+
+            MessageBox.Show(
+                result.Message,
+                result.Success ? "필수 앱 설치 완료" : "필수 앱 설치 실패",
+                MessageBoxButtons.OK,
+                result.Success ? MessageBoxIcon.Information : MessageBoxIcon.Error);
+
+            if (result.Success)
+            {
+                var environment = await _bootstrapService.PrepareAsync(AppendManagerLog);
+                foreach (var component in environment.Components)
+                {
+                    AppendManagerLog(
+                        $"환경 · {component.Name} · {component.State} · {component.Detail}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendManagerLog($"필수 앱 설치 실패 · {ex.Message}");
+            SetOperationStatus("환경 준비 실패", ex.Message, Color.Firebrick);
+            MessageBox.Show(
+                ex.Message,
+                "필수 앱 설치 실패",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+        finally
+        {
+            SetBusy(false);
+            await RefreshStatusAsync();
+            _statusTimer.Start();
+        }
+    }
+
     private void OpenRepository()
     {
         try
@@ -777,6 +867,7 @@ internal sealed class MainForm : Form
         _stopButton.Enabled = !busy;
         _refreshButton.Enabled = !busy;
         _environmentButton.Enabled = !busy;
+        _installDependenciesButton.Enabled = !busy;
         _loadLogButton.Enabled = !busy;
 
         _startButton.Text = busy && operation == "START" ? "Starting..." : "Start MCP";

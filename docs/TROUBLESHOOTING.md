@@ -183,3 +183,17 @@ chat_local_workspace\.windows-runner
 현재는 사용하지 않는다.
 
 StopMCP에 기존 위치 cleanup 코드가 남아 있는 것은 마이그레이션 호환 목적이다.
+
+## 13. 설치형 환경에서 필수 앱 설치가 실패하는 경우
+
+Manager의 `필수 앱 설치`는 현재 Docker Desktop과 Tailscale을 `winget`으로 설치한다.
+
+다음을 확인한다.
+
+1. Windows App Installer / `winget.exe` 사용 가능 여부
+2. 인터넷 연결
+3. 설치 과정에서 표시되는 UAC 승인
+4. Docker Desktop 설치 후 재부팅 또는 최초 실행 필요 여부
+5. Tailscale 설치 후 로그인 여부
+
+App package와 portable Node 자동 확보는 아직 별도 구현 단계다. 따라서 이 둘이 Missing이면 현재 Manager만으로 전체 설치가 완료되지는 않는다.

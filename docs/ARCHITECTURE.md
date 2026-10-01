@@ -200,6 +200,24 @@ PowerShell/cmd를 거치지 않고 `git.exe`, `dotnet.exe` 등을 direct-process
   - Start/Stop 스크립트 실행
   - 각 구성 요소 상태 조회
   - Runner 로그 표시
+  - 설치형 경로와 개발 저장소 경로를 분리
+  - App package / Node / Docker / Tailscale / MCP config bootstrap 점검
+  - 누락된 Docker Desktop / Tailscale을 winget으로 설치
+  - Tailscale 로그인 완료 후 MCP public URL과 workspace 설정 자동 생성
+
+설치형 기본 레이아웃:
+
+```text
+%LOCALAPPDATA%\ChatLocalWork\
+├─ app\current\
+├─ tools\node\node.exe
+├─ config\app-config.json
+└─ runtime\windows-runner\
+
+Documents\ChatLocalWorkWorkspace\
+```
+
+Manager가 Git 저장소 내부에서 실행되면 기존 개발 환경을 보호하기 위해 설치형 bootstrap 변경을 자동 적용하지 않는다.
 
 ## windows_exec 인터페이스
 

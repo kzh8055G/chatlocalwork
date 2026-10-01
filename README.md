@@ -106,7 +106,17 @@ LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 - Tailscale 상태
 - Funnel 상태
 - MCP `/health` 상태
+- 설치형 환경 bootstrap 점검
+- 누락된 Docker Desktop / Tailscale의 winget 기반 설치
 - Runner 로그 확인
+
+설치형 실행 시 기본 경로는 다음과 같습니다.
+
+```text
+App       : %LOCALAPPDATA%\ChatLocalWork\app\current
+Node      : %LOCALAPPDATA%\ChatLocalWork\tools\node\node.exe
+Workspace : Documents\ChatLocalWorkWorkspace
+```
 
 ### Start / Stop 자동화
 
