@@ -19,10 +19,8 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 - Local MCP `/health` 확인
 - 설치형 환경 bootstrap 점검(App package / Node / Docker / Tailscale / MCP config)
 - `환경 점검` 버튼으로 설치 준비 상태 확인
-- `필수 앱 설치` 버튼으로 누락된 Docker Desktop / Tailscale을 winget으로 설치
-- 실제 외부 앱 설치 전 사용자 확인
-- 개발 저장소에서는 의존성 자동 설치 비활성
 - Tailscale 로그인 완료 시 MCP `.env`의 public URL/workspace 설정 자동 생성
+- 외부 의존성 설치는 수행하지 않으며 `installer/`가 담당
 - Runner 로그 확인
 - 실행 로그 지우기 및 자동 길이 제한
 - Start/Stop 작업 중 중복 실행 방지

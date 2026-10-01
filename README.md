@@ -30,6 +30,8 @@ ChatLocalWork는 다음 구성 요소를 하나의 프로젝트로 관리합니�
 ```text
 ChatLocalWork/
 ├─ localworkmcp/             # MCP 서버 컴포넌트
+├─ installer/
+│  └─ ChatLocalWork.Installer/ # 설치/의존성 bootstrapper
 ├─ manager/
 │  └─ ChatLocalWork.Manager/ # Windows 관리 UI
 ├─ windows-runner/           # Windows Runner 소스와 설정
@@ -96,6 +98,17 @@ LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 - 실행 파일 allowlist / blocklist 적용
 - 요청/응답은 파일 큐로 교환
 
+### ChatLocalWork Installer
+
+`installer/ChatLocalWork.Installer/`에 위치합니다.
+
+- Docker Desktop / Tailscale 설치 책임
+- ChatLocalWork 전용 Portable Node LTS 다운로드/배치
+- 향후 ChatLocalWork app package 배치까지 담당
+- Manager에는 외부 의존성 설치 책임을 두지 않음
+
+현재 Installer는 `--check`, `--install` 모드를 제공합니다.
+
 ### ChatLocalWork Manager
 
 `manager/ChatLocalWork.Manager/`에 위치하는 .NET 8 WinForms 프로그램입니다.
@@ -106,8 +119,7 @@ LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 - Tailscale 상태
 - Funnel 상태
 - MCP `/health` 상태
-- 설치형 환경 bootstrap 점검
-- 누락된 Docker Desktop / Tailscale의 winget 기반 설치
+- 설치형 환경 bootstrap 점검 및 최초 실행 설정
 - Runner 로그 확인
 
 설치형 실행 시 기본 경로는 다음과 같습니다.
@@ -182,6 +194,7 @@ scripts\windows\StopMCP.bat
 - `docs/PROJECT_STATE.md` — 현재 구현/검증 상태와 남은 작업
 - `docs/SECURITY.md` — Windows Runner 실행 보안 모델
 - `docs/TROUBLESHOOTING.md` — Start/Runner/Docker/Tailscale 문제 해결
+- `installer/README.md` — Installer / 의존성 bootstrap
 - `manager/README.md` — Manager
 - `windows-runner/README.md` — Windows Runner
 - `localworkmcp/README.md` — MCP 서버 컴포넌트

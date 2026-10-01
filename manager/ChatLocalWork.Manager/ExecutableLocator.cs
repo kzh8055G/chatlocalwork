@@ -73,14 +73,4 @@ internal static class ExecutableLocator
             Path.Combine(programFiles, "Tailscale", "tailscale.exe"),
             Path.Combine(programFilesX86, "Tailscale", "tailscale.exe"));
     }
-
-    public static string? FindWinget()
-    {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var appExecutionAlias = string.IsNullOrWhiteSpace(localAppData)
-            ? null
-            : Path.Combine(localAppData, "Microsoft", "WindowsApps", "winget.exe");
-
-        return Find("winget.exe", appExecutionAlias);
-    }
 }

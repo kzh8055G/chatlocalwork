@@ -64,6 +64,9 @@ ChatLocalWork/
 │  ├─ deploy/
 │  ├─ package.json
 │  └─ README.md
+├─ installer/
+│  ├─ ChatLocalWork.Installer/
+│  └─ README.md
 ├─ manager/
 │  ├─ ChatLocalWork.Manager/
 │  └─ README.md
@@ -194,6 +197,14 @@ PowerShell/cmd를 거치지 않고 `git.exe`, `dotnet.exe` 등을 direct-process
   - Funnel/Tailscale → Docker → Runner 정리
   - 이전 `.windows-runner` 위치도 마이그레이션 호환 목적으로 정리
 
+### Installer
+
+- `installer/ChatLocalWork.Installer/`
+  - 설치 전용 bootstrapper
+  - Docker Desktop / Tailscale 누락 여부 확인 및 winget 설치
+  - nodejs.org의 현재 Windows x64 LTS ZIP을 내려받아 Portable Node 배치
+  - 향후 ChatLocalWork app package 배치까지 담당
+
 ### Manager
 
 - `manager/ChatLocalWork.Manager/`
@@ -202,8 +213,8 @@ PowerShell/cmd를 거치지 않고 `git.exe`, `dotnet.exe` 등을 direct-process
   - Runner 로그 표시
   - 설치형 경로와 개발 저장소 경로를 분리
   - App package / Node / Docker / Tailscale / MCP config bootstrap 점검
-  - 누락된 Docker Desktop / Tailscale을 winget으로 설치
   - Tailscale 로그인 완료 후 MCP public URL과 workspace 설정 자동 생성
+  - 외부 의존성 설치는 수행하지 않음
 
 설치형 기본 레이아웃:
 
