@@ -116,22 +116,20 @@ Docker에는 다음 위치로 bind mount된다.
 
 ## Windows workspace
 
-현재 Windows Runner의 workspaceRoot는 `chat_local_workspace`다.
-
-예:
+Windows Runner의 `workspaceRoot`는 설치형 환경에서 다음 설정으로 지정한다.
 
 ```text
-C:\Users\<user>\Documents\chat_local_workspace
+%LOCALAPPDATA%\ChatLocalWork\config\app-config.json
 ```
 
-일반 작업 디렉터리는 이 workspace 내부로 제한한다.
-
-Docker에서는 workspace 전체가 다음처럼 보인다.
+`workspaceRoot`는 임의의 절대 Windows 경로를 사용할 수 있으며, StartMCP가 같은 경로를 Docker의 `SHARED_PATH`로 전달한다.
 
 ```text
-Windows: C:\Users\<user>\Documents\chat_local_workspace
+Windows: <workspaceRoot>
 Docker : /shared
 ```
+
+일반 작업 디렉터리는 이 workspace 내부로 제한한다. 설정 파일이 없는 개발 환경에서는 기존 호환을 위해 ChatLocalWork 저장소의 부모 디렉터리를 workspaceRoot로 사용한다.
 
 이 마운트는 프로젝트 파일 접근을 위한 것이고, Windows Runner queue는 별도의 LocalAppData mount를 사용한다.
 

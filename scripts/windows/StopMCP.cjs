@@ -4,9 +4,9 @@ const { spawnSync } = require("child_process");
 
 const CONTAINER = "workmachine";
 const scriptRoot = __dirname;
-const projectRoot = path.resolve(scriptRoot, "..", "..");
+const projectRoot = path.resolve(process.env.CHATLOCALWORK_APP_ROOT || path.resolve(scriptRoot, "..", ".."));
 const mcpRoot = path.join(projectRoot, "localworkmcp");
-const workspaceRoot = path.dirname(projectRoot);
+const workspaceRoot = path.resolve(process.env.CHATLOCALWORK_WORKSPACE_ROOT || path.dirname(projectRoot));
 const composeFile = path.join(mcpRoot, "tunneling", "docker-compose.yml");
 const envFile = path.join(mcpRoot, "tunneling", ".env");
 const localAppData = process.env.LOCALAPPDATA;
@@ -32,6 +32,7 @@ function run(command, args = [], options = {}) {
     windowsHide: true,
     stdio: options.inherit ? "inherit" : ["ignore", "pipe", "pipe"],
     timeout: options.timeout || 30000,
+    env: options.env ? { ...process.env, ...options.env } : process.env,
   });
   return result;
 }
@@ -122,7 +123,16 @@ function stopDocker() {
       "-f", composeFile,
       "down",
       "--remove-orphans",
-    ], { cwd: mcpRoot, timeout: 120000, reportFailure: true });
+    ], {
+      cwd: mcpRoot,
+      timeout: 120000,
+      reportFailure: true,
+      env: {
+        SHARED_PATH: workspaceRoot,
+        WINDOWS_RUNNER_HOST_DIR: runnerQueueDir,
+        WINDOWS_RUNNER_CONTAINER_DIR: "/chatlocalwork-runtime/windows-runner",
+      },
+    });
   }
 
   bestEffort("docker.exe", ["desktop", "stop"], {

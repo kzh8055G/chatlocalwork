@@ -20,7 +20,8 @@ internal static class ProcessRunner
         string? workingDirectory = null,
         TimeSpan? timeout = null,
         Action<string>? onOutput = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyDictionary<string, string?>? environment = null)
     {
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
@@ -38,6 +39,21 @@ internal static class ProcessRunner
         foreach (var argument in arguments)
         {
             startInfo.ArgumentList.Add(argument);
+        }
+
+        if (environment is not null)
+        {
+            foreach (var pair in environment)
+            {
+                if (pair.Value is null)
+                {
+                    startInfo.Environment.Remove(pair.Key);
+                }
+                else
+                {
+                    startInfo.Environment[pair.Key] = pair.Value;
+                }
+            }
         }
 
         using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };

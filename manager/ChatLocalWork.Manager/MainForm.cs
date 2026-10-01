@@ -26,7 +26,7 @@ internal sealed class MainForm : Form
     private readonly Button _stopButton = new() { Text = "Stop MCP", AutoSize = true };
     private readonly Button _refreshButton = new() { Text = "상태 새로 고침", AutoSize = true };
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
-    private readonly Button _openRepositoryButton = new() { Text = "프로젝트 폴더", AutoSize = true };
+    private readonly Button _openRepositoryButton = new() { Text = "앱 폴더", AutoSize = true };
     private readonly Button _clearLogButton = new() { Text = "로그 지우기", AutoSize = true };
     private readonly CheckBox _stopMcpOnExitCheckBox = new()
     {
@@ -120,8 +120,9 @@ internal sealed class MainForm : Form
 
         Shown += async (_, _) =>
         {
-            AppendManagerLog($"Repository: {_paths.RepositoryRoot}");
+            AppendManagerLog($"App root  : {_paths.AppRoot}");
             AppendManagerLog($"Workspace : {_paths.WorkspaceRoot}");
+            AppendManagerLog($"Layout    : {(_paths.InstalledLayout ? "installed" : "development")}");
             AppendManagerLog($"Runtime   : {_paths.RunnerQueueDirectory}");
             AppendManagerLog("Manager 시작 · MCP 자동 시작");
 

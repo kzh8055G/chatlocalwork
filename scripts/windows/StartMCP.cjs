@@ -11,9 +11,10 @@ const MAX_GATEWAY_PORT = 4999;
 let gatewayPort = DEFAULT_GATEWAY_PORT;
 
 const scriptRoot = __dirname;
-const projectRoot = path.resolve(scriptRoot, "..", "..");
+const projectRoot = path.resolve(process.env.CHATLOCALWORK_APP_ROOT || path.resolve(scriptRoot, "..", ".."));
 const mcpRoot = path.join(projectRoot, "localworkmcp");
-const workspaceRoot = path.dirname(projectRoot);
+const workspaceRoot = path.resolve(process.env.CHATLOCALWORK_WORKSPACE_ROOT || path.dirname(projectRoot));
+const configuredAppVersion = String(process.env.CHATLOCALWORK_APP_VERSION || "").trim();
 const composeFile = path.join(mcpRoot, "tunneling", "docker-compose.yml");
 const envFile = path.join(mcpRoot, "tunneling", ".env");
 const runnerScript = path.join(projectRoot, "windows-runner", "runner.cjs");
@@ -230,9 +231,18 @@ function readStartState() {
   }
 }
 
+function sourceIdentity() {
+  if (configuredAppVersion) return "version:" + configuredAppVersion;
+
+  const gitHead = currentGitHead();
+  if (!gitHead || !gitWorkingTreeClean()) return null;
+  return "git:" + gitHead;
+}
+
 function writeStartState() {
   fs.mkdirSync(path.dirname(startStateFile), { recursive: true });
   fs.writeFileSync(startStateFile, JSON.stringify({
+    sourceIdentity: sourceIdentity(),
     gitHead: currentGitHead(),
     gatewayPort,
     startedAt: new Date().toISOString(),
@@ -528,8 +538,11 @@ async function publicReady(baseUrl, verbose = true) {
 
 async function existingEnvironmentReady(publicUrl) {
   const state = readStartState();
-  const gitHead = currentGitHead();
-  if (!state || !gitHead || state.gitHead !== gitHead || !gitWorkingTreeClean()) return false;
+  const identity = sourceIdentity();
+  if (!state || !identity) return false;
+
+  const savedIdentity = state.sourceIdentity || (state.gitHead ? "git:" + state.gitHead : null);
+  if (savedIdentity !== identity) return false;
   if (!runnerReady() || !dockerReady() || !containerHealthy()) return false;
 
   const port = publishedGatewayPort();
@@ -594,6 +607,7 @@ async function main() {
     inherit: true,
     env: {
       MCP_HOST_PORT: String(gatewayPort),
+      SHARED_PATH: workspaceRoot,
       WINDOWS_RUNNER_HOST_DIR: runnerQueueDir,
       WINDOWS_RUNNER_CONTAINER_DIR: runnerContainerQueueDir,
     },

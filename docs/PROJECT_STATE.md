@@ -1,6 +1,6 @@
 # ChatLocalWork 프로젝트 상태
 
-기준일: 2026-09-30
+기준일: 2026-10-01
 
 ## 목표
 
@@ -90,6 +90,16 @@ Docker mount:
 - MCP health 상태
 - Runner 로그 표시
 - 프로젝트 폴더 열기
+
+### 설치형 경로 분리
+
+- `%LOCALAPPDATA%\ChatLocalWork\config\app-config.json` 기반 설치형 경로 지원
+- `appRoot`와 `workspaceRoot` 분리
+- Start/Stop이 `CHATLOCALWORK_WORKSPACE_ROOT`를 통해 동일 workspace 사용
+- Docker `SHARED_PATH`를 실행 시 workspaceRoot로 강제 전달하여 로컬 `.env` 절대경로 의존 제거
+- ChatLocalWork 전용 portable Node 경로 지원
+- Git이 없는 Release 설치본은 `appVersion`을 source identity로 사용하여 fast path 유지
+- 설정 파일이 없으면 기존 개발 저장소 탐색 방식으로 fallback
 
 ### Start/Stop 안정화
 

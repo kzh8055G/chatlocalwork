@@ -38,12 +38,18 @@ internal static class ExecutableLocator
         return null;
     }
 
-    public static string? FindNode()
+    public static string? FindNode(string? configuredPath = null)
     {
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var portableNode = string.IsNullOrWhiteSpace(localAppData)
+            ? null
+            : Path.Combine(localAppData, "ChatLocalWork", "tools", "node", "node.exe");
 
         return Find(
             "node.exe",
+            configuredPath,
+            portableNode,
             @"C:\nvm4w\nodejs\node.exe",
             Path.Combine(programFiles, "nodejs", "node.exe"));
     }

@@ -30,16 +30,24 @@ internal sealed class MpcLifecycleService
             throw new FileNotFoundException("MCP lifecycle script was not found.", script);
         }
 
-        var node = ExecutableLocator.FindNode()
+        var node = ExecutableLocator.FindNode(_paths.NodePath)
             ?? throw new InvalidOperationException(
-                "node.exe was not found. Install Node.js or add it to PATH.");
+                "node.exe was not found. Configure portable Node or install Node.js.");
+
+        var environment = new Dictionary<string, string?>
+        {
+            ["CHATLOCALWORK_APP_ROOT"] = _paths.AppRoot,
+            ["CHATLOCALWORK_WORKSPACE_ROOT"] = _paths.WorkspaceRoot,
+            ["CHATLOCALWORK_APP_VERSION"] = _paths.AppVersion,
+        };
 
         return ProcessRunner.RunAsync(
             node,
             new[] { script },
-            _paths.RepositoryRoot,
+            _paths.AppRoot,
             timeout,
             onOutput,
-            cancellationToken);
+            cancellationToken,
+            environment);
     }
 }
