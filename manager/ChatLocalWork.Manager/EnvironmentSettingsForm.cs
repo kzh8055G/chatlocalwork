@@ -82,19 +82,29 @@ internal sealed class EnvironmentSettingsForm : Form
             Padding = new Padding(16),
         };
 
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-        var titlePanel = new Panel { Dock = DockStyle.Fill };
+        var titlePanel = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 1,
+            RowCount = 2,
+            Margin = new Padding(0, 0, 0, 8),
+        };
+        titlePanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        titlePanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         var title = new Label
         {
             Text = "환경 설정",
             AutoSize = true,
             Font = new Font("Segoe UI", 16F, FontStyle.Bold),
-            Location = new Point(0, 0),
+            Margin = new Padding(0, 0, 0, 2),
         };
 
         var subtitle = new Label
@@ -102,11 +112,11 @@ internal sealed class EnvironmentSettingsForm : Form
             Text = "ChatLocalWork 실행 환경과 Workspace를 관리합니다.",
             AutoSize = true,
             ForeColor = SystemColors.GrayText,
-            Location = new Point(2, 32),
+            Margin = new Padding(2, 0, 0, 0),
         };
 
-        titlePanel.Controls.Add(title);
-        titlePanel.Controls.Add(subtitle);
+        titlePanel.Controls.Add(title, 0, 0);
+        titlePanel.Controls.Add(subtitle, 0, 1);
 
         var workspaceGroup = new GroupBox
         {
