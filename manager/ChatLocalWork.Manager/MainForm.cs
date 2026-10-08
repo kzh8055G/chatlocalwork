@@ -28,6 +28,7 @@ internal sealed class MainForm : Form
     private readonly Button _refreshButton = new() { Text = "상태 새로 고침", AutoSize = true };
     private readonly Button _environmentButton = new() { Text = "환경 점검", AutoSize = true };
     private readonly Button _tailscaleLoginButton = new() { Text = "Tailscale 로그인", AutoSize = true };
+    private readonly Button _workspaceButton = new() { Text = "Workspace 변경", AutoSize = true };
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
     private readonly Button _openRepositoryButton = new() { Text = "앱 폴더", AutoSize = true };
     private readonly Button _clearLogButton = new() { Text = "로그 지우기", AutoSize = true };
@@ -91,6 +92,7 @@ internal sealed class MainForm : Form
     private bool _allowClose;
     private bool _exitStopInProgress;
     private string? _currentLifecycleStage;
+    private ManagerSettings _settings;
 
     public MainForm(AppPaths paths)
     {
@@ -99,8 +101,8 @@ internal sealed class MainForm : Form
         _statusService = new StatusService(paths);
         _bootstrapService = new BootstrapService(paths);
 
-        var settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile);
-        _stopMcpOnExitCheckBox.Checked = settings.StopMcpOnExit;
+        _settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile);
+        _stopMcpOnExitCheckBox.Checked = _settings.StopMcpOnExit;
 
         Text = "ChatLocalWork Manager";
         StartPosition = FormStartPosition.CenterScreen;
@@ -116,6 +118,7 @@ internal sealed class MainForm : Form
         _refreshButton.Click += async (_, _) => await RefreshStatusAsync();
         _environmentButton.Click += async (_, _) => await InspectEnvironmentAsync(showDialog: true);
         _tailscaleLoginButton.Click += async (_, _) => await RunTailscaleLoginAsync();
+        _workspaceButton.Click += (_, _) => ChangeWorkspace();
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();
         _clearLogButton.Click += (_, _) => _logBox.Clear();
@@ -233,6 +236,7 @@ internal sealed class MainForm : Form
                      _refreshButton,
                      _environmentButton,
                      _tailscaleLoginButton,
+                     _workspaceButton,
                      _loadLogButton,
                      _openRepositoryButton,
                      _clearLogButton,
@@ -653,13 +657,73 @@ internal sealed class MainForm : Form
     {
         try
         {
-            ManagerSettingsStore.Save(
-                _paths.ManagerSettingsFile,
-                new ManagerSettings(_stopMcpOnExitCheckBox.Checked));
+            _settings = _settings with
+            {
+                StopMcpOnExit = _stopMcpOnExitCheckBox.Checked,
+            };
+            ManagerSettingsStore.Save(_paths.ManagerSettingsFile, _settings);
         }
         catch (Exception ex)
         {
             AppendManagerLog($"설정 저장 실패 · {ex.Message}");
+        }
+    }
+
+    private void ChangeWorkspace()
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = $"새 Workspace 폴더를 선택하세요.\r\n현재: {_paths.WorkspaceRoot}",
+            UseDescriptionForTitle = true,
+            InitialDirectory = Directory.Exists(_paths.WorkspaceRoot)
+                ? _paths.WorkspaceRoot
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            ShowNewFolderButton = true,
+        };
+
+        if (dialog.ShowDialog(this) != DialogResult.OK ||
+            string.IsNullOrWhiteSpace(dialog.SelectedPath))
+        {
+            return;
+        }
+
+        try
+        {
+            var selectedPath = Path.GetFullPath(dialog.SelectedPath);
+            Directory.CreateDirectory(selectedPath);
+
+            _settings = _settings with
+            {
+                WorkspaceRoot = selectedPath,
+                StopMcpOnExit = _stopMcpOnExitCheckBox.Checked,
+            };
+            ManagerSettingsStore.Save(_paths.ManagerSettingsFile, _settings);
+
+            AppendManagerLog($"Workspace 변경 예약 · {selectedPath}");
+            SetOperationStatus(
+                "Workspace 변경됨",
+                "새 Workspace는 Manager를 다시 시작하면 적용됩니다.",
+                Color.DarkOrange);
+
+            MessageBox.Show(
+                $"Workspace를 다음 경로로 변경했습니다.\r\n\r\n{selectedPath}\r\n\r\nManager를 다시 시작하면 적용됩니다.",
+                "Workspace 변경",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            AppendManagerLog($"Workspace 변경 실패 · {ex.Message}");
+            MessageBox.Show(
+                ex.Message,
+                "Workspace 변경 실패",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
         }
     }
 
@@ -875,6 +939,7 @@ internal sealed class MainForm : Form
         _refreshButton.Enabled = !busy;
         _environmentButton.Enabled = !busy;
         _tailscaleLoginButton.Enabled = !busy;
+        _workspaceButton.Enabled = !busy;
         _loadLogButton.Enabled = !busy;
 
         _startButton.Text = busy && operation == "START" ? "Starting..." : "Start MCP";

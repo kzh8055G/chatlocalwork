@@ -24,6 +24,8 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 - Tailscale 미로그인 시 자동 Start 중단
 - `Tailscale 로그인` 버튼을 사용자가 눌렀을 때만 `tailscale up` 실행
 - Tailscale 로그인 완료 시 MCP `.env`의 public URL/workspace 설정 자동 생성 후 READY이면 MCP 자동 Start
+- `Workspace 변경` 버튼으로 로컬 workspace를 선택하고 `manager-settings.json`에 override 저장
+- workspace 변경은 Manager 재시작 후 Windows Runner/Docker `/shared`에 적용
 - 외부 의존성 설치는 수행하지 않으며 `installer/`가 담당
 - Runner 로그 확인
 - 실행 로그 지우기 및 자동 길이 제한
@@ -95,6 +97,8 @@ manager\ChatLocalWork.Manager\bin\Release\net8.0-windows\ChatLocalWork.Manager.e
 - `appVersion`: Installer가 기록한 source commit. Docker fast path의 source identity로 사용
 
 예시는 `docs/app-config.example.json`을 참고합니다.
+
+Workspace를 UI에서 변경하면 `%LOCALAPPDATA%\\ChatLocalWork\\manager-settings.json`의 `workspaceRoot`가 `app-config.json` 또는 개발 모드 기본 workspace보다 우선합니다. 변경값은 Manager 재시작 후 적용됩니다.
 
 설정 파일이 없으면 개발 환경 호환을 위해 Manager 실행 위치의 상위 디렉터리에서 다음 두 파일을 찾아 저장소 루트를 자동 탐색합니다.
 

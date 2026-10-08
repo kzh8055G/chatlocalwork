@@ -124,6 +124,7 @@ LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 - 시작 시 환경이 READY인 경우에만 MCP 자동 Start
 - `Tailscale 로그인` 버튼을 눌렀을 때만 `tailscale up` 실행
 - 로그인 완료 후 `.env`를 구성하고 환경 READY이면 MCP 자동 Start
+- `Workspace 변경` 버튼으로 작업 폴더 선택, Manager 재시작 후 적용
 - Runner 로그 확인
 
 설치형 실행 시 기본 경로는 다음과 같습니다.

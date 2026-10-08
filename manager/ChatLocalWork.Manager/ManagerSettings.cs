@@ -2,7 +2,9 @@ using System.Text.Json;
 
 namespace ChatLocalWork.Manager;
 
-internal sealed record ManagerSettings(bool StopMcpOnExit = true);
+internal sealed record ManagerSettings(
+    bool StopMcpOnExit = true,
+    string? WorkspaceRoot = null);
 
 internal static class ManagerSettingsStore
 {

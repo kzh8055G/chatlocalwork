@@ -69,12 +69,16 @@ internal sealed class AppPaths
 
         var dataDirectory = Path.Combine(localAppData, "ChatLocalWork");
         var appConfigFile = Path.Combine(dataDirectory, "config", "app-config.json");
+        var managerSettingsFile = Path.Combine(dataDirectory, "manager-settings.json");
+        var managerSettings = ManagerSettingsStore.Load(managerSettingsFile);
 
         if (File.Exists(appConfigFile))
         {
             var config = LoadInstalledLayoutConfig(appConfigFile);
             var appRoot = RequireAbsolutePath(config.AppRoot, "appRoot", appConfigFile);
-            var workspaceRoot = RequireAbsolutePath(config.WorkspaceRoot, "workspaceRoot", appConfigFile);
+            var workspaceRoot = ResolveWorkspaceRoot(
+                RequireAbsolutePath(config.WorkspaceRoot, "workspaceRoot", appConfigFile),
+                managerSettings.WorkspaceRoot);
             var nodePath = OptionalAbsolutePath(config.NodePath, "nodePath", appConfigFile);
 
             return new AppPaths(
@@ -92,6 +96,9 @@ internal sealed class AppPaths
         {
             var developmentWorkspaceRoot = Directory.GetParent(developmentAppRoot)?.FullName
                 ?? throw new InvalidOperationException("Workspace root could not be resolved.");
+            developmentWorkspaceRoot = ResolveWorkspaceRoot(
+                developmentWorkspaceRoot,
+                managerSettings.WorkspaceRoot);
 
             return new AppPaths(
                 developmentAppRoot,
@@ -110,7 +117,9 @@ internal sealed class AppPaths
         }
 
         var defaultAppRoot = Path.Combine(dataDirectory, "app", "current");
-        var defaultWorkspaceRoot = Path.Combine(documents, "ChatLocalWorkWorkspace");
+        var defaultWorkspaceRoot = ResolveWorkspaceRoot(
+            Path.Combine(documents, "ChatLocalWorkWorkspace"),
+            managerSettings.WorkspaceRoot);
         var defaultNodePath = Path.Combine(dataDirectory, "tools", "node", "node.exe");
 
         return new AppPaths(
@@ -121,6 +130,21 @@ internal sealed class AppPaths
             dataDirectory,
             appConfigFile,
             installedLayout: true);
+    }
+
+    private static string ResolveWorkspaceRoot(string defaultWorkspaceRoot, string? overrideWorkspaceRoot)
+    {
+        if (string.IsNullOrWhiteSpace(overrideWorkspaceRoot))
+        {
+            return defaultWorkspaceRoot;
+        }
+
+        if (!Path.IsPathFullyQualified(overrideWorkspaceRoot))
+        {
+            return defaultWorkspaceRoot;
+        }
+
+        return Path.GetFullPath(overrideWorkspaceRoot);
     }
 
     private static InstalledLayoutConfig LoadInstalledLayoutConfig(string appConfigFile)

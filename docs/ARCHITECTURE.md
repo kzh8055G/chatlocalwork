@@ -221,6 +221,8 @@ PowerShell/cmd를 거치지 않고 `git.exe`, `dotnet.exe` 등을 direct-process
   - Installer가 기록한 `.chatlocalwork-version`을 `appVersion`으로 반영
   - Tailscale 로그인 완료 후 MCP public URL과 workspace 설정 자동 생성
   - 기존 `app-config.json`은 덮어쓰지 않음
+  - `manager-settings.json`의 workspace override가 있으면 설치형/개발형 기본 workspace보다 우선 적용
+  - `Workspace 변경` UI로 override를 저장하며 Manager 재시작 후 lifecycle에 반영
   - 외부 의존성 설치는 수행하지 않음
 
 설치형 기본 레이아웃:
