@@ -18,13 +18,14 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 - Tailscale Funnel 상태 확인
 - Local MCP `/health` 확인
 - 설치형 환경 bootstrap 점검(App package / Node / Docker / Tailscale / MCP config)
-- `환경 점검` 버튼으로 설치 준비 상태 확인
+- 메인 화면의 `환경 설정...` 버튼으로 별도 환경 설정 창 열기
+- 환경 설정 창에서 현재 Workspace와 App source / Node / Docker / Tailscale / MCP config 상태 확인
 - 설치형 최초 실행에서 `app-config.json` 자동 생성(기존 설정은 보존)
 - `.chatlocalwork-version`이 있으면 `appVersion`에 반영
 - Tailscale 미로그인 시 자동 Start 중단
-- `Tailscale 로그인` 버튼을 사용자가 눌렀을 때만 `tailscale up` 실행
+- 환경 설정 창의 `Tailscale 로그인` 버튼을 사용자가 눌렀을 때만 `tailscale up` 실행
 - Tailscale 로그인 완료 시 MCP `.env`의 public URL/workspace 설정 자동 생성 후 READY이면 MCP 자동 Start
-- `Workspace 변경` 버튼으로 로컬 workspace를 선택하고 `manager-settings.json`에 override 저장
+- 환경 설정 창의 `Workspace 변경`으로 로컬 workspace를 선택하고 `manager-settings.json`에 override 저장
 - workspace 변경은 Manager 재시작 후 Windows Runner/Docker `/shared`에 적용
 - 외부 의존성 설치는 수행하지 않으며 `installer/`가 담당
 - Runner 로그 확인

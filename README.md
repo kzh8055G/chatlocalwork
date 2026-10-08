@@ -122,9 +122,11 @@ LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 - 설치형 환경 bootstrap 점검 및 최초 실행 설정
 - 최초 설치형 실행에서 `app-config.json` 생성(기존 설정은 보존)
 - 시작 시 환경이 READY인 경우에만 MCP 자동 Start
-- `Tailscale 로그인` 버튼을 눌렀을 때만 `tailscale up` 실행
+- 메인 화면의 `환경 설정...` 버튼에서 별도 환경 설정 창 열기
+- 설정 창에서 환경 점검 / Tailscale 로그인 / Workspace 변경을 한곳에서 처리
+- `Tailscale 로그인`을 눌렀을 때만 `tailscale up` 실행
 - 로그인 완료 후 `.env`를 구성하고 환경 READY이면 MCP 자동 Start
-- `Workspace 변경` 버튼으로 작업 폴더 선택, Manager 재시작 후 적용
+- Workspace 변경은 `manager-settings.json`에 저장되고 Manager 재시작 후 적용
 - Runner 로그 확인
 
 설치형 실행 시 기본 경로는 다음과 같습니다.

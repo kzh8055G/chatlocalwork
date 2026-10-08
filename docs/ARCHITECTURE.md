@@ -216,13 +216,14 @@ PowerShell/cmd를 거치지 않고 `git.exe`, `dotnet.exe` 등을 direct-process
   - App source / Node / Docker / Tailscale / MCP config bootstrap 점검
   - Manager 시작 시 bootstrap이 READY인 경우에만 MCP 자동 Start
   - Tailscale 미로그인 상태에서는 자동 Start를 막고 사용자 명시 동작을 기다림
-  - `Tailscale 로그인` 버튼에서만 `tailscale up`을 실행
+  - 메인 화면에서는 `환경 설정...` 버튼 하나만 노출하고 별도 환경 설정 창으로 환경 기능을 분리
+  - 환경 설정 창의 `Tailscale 로그인` 버튼에서만 `tailscale up`을 실행
   - 설치형 최초 실행에서 기본 경로를 `app-config.json`으로 영속화
   - Installer가 기록한 `.chatlocalwork-version`을 `appVersion`으로 반영
   - Tailscale 로그인 완료 후 MCP public URL과 workspace 설정 자동 생성
   - 기존 `app-config.json`은 덮어쓰지 않음
   - `manager-settings.json`의 workspace override가 있으면 설치형/개발형 기본 workspace보다 우선 적용
-  - `Workspace 변경` UI로 override를 저장하며 Manager 재시작 후 lifecycle에 반영
+  - 환경 설정 창의 `Workspace 변경` UI로 override를 저장하며 Manager 재시작 후 lifecycle에 반영
   - 외부 의존성 설치는 수행하지 않음
 
 설치형 기본 레이아웃:

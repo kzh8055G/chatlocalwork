@@ -96,9 +96,9 @@ Docker mount:
 - 저장소 외부에서 실행된 Manager도 설치형 기본 경로로 시작 가능
 - 설치형 기본값: `%LOCALAPPDATA%\ChatLocalWork\app\current`
 - 기본 workspace: 사용자 Documents의 `ChatLocalWorkWorkspace`
-- Manager `환경 점검`으로 App source / Node / Docker / Tailscale / MCP config 상태 확인
+- Manager 메인 화면의 `환경 설정...` 버튼에서 별도 환경 설정 창을 열고 App source / Node / Docker / Tailscale / MCP config 상태 확인
 - Manager 시작 시 bootstrap READY일 때만 MCP 자동 Start
-- Tailscale 로그인이 필요한 경우 자동 `tailscale up`을 실행하지 않고 `Tailscale 로그인` 버튼으로 명시적 사용자 동작을 요구
+- Tailscale 로그인이 필요한 경우 자동 `tailscale up`을 실행하지 않고 환경 설정 창의 `Tailscale 로그인` 버튼으로 명시적 사용자 동작을 요구
 - 로그인 완료 후 `.env` 재구성/재점검을 수행하고 전체 READY이면 MCP 자동 Start
 - 설치형 최초 실행에서 기본 app/workspace/node 경로를 `app-config.json`으로 영속화하고 기존 설정은 덮어쓰지 않음
 - Installer의 `.chatlocalwork-version`이 있으면 commit hash를 `appVersion`으로 기록

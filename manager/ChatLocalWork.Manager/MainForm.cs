@@ -26,9 +26,7 @@ internal sealed class MainForm : Form
     private readonly Button _startButton = new() { Text = "Start MCP", AutoSize = true };
     private readonly Button _stopButton = new() { Text = "Stop MCP", AutoSize = true };
     private readonly Button _refreshButton = new() { Text = "상태 새로 고침", AutoSize = true };
-    private readonly Button _environmentButton = new() { Text = "환경 점검", AutoSize = true };
-    private readonly Button _tailscaleLoginButton = new() { Text = "Tailscale 로그인", AutoSize = true };
-    private readonly Button _workspaceButton = new() { Text = "Workspace 변경", AutoSize = true };
+    private readonly Button _environmentSettingsButton = new() { Text = "환경 설정...", AutoSize = true };
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
     private readonly Button _openRepositoryButton = new() { Text = "앱 폴더", AutoSize = true };
     private readonly Button _clearLogButton = new() { Text = "로그 지우기", AutoSize = true };
@@ -92,7 +90,6 @@ internal sealed class MainForm : Form
     private bool _allowClose;
     private bool _exitStopInProgress;
     private string? _currentLifecycleStage;
-    private ManagerSettings _settings;
 
     public MainForm(AppPaths paths)
     {
@@ -101,8 +98,8 @@ internal sealed class MainForm : Form
         _statusService = new StatusService(paths);
         _bootstrapService = new BootstrapService(paths);
 
-        _settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile);
-        _stopMcpOnExitCheckBox.Checked = _settings.StopMcpOnExit;
+        var settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile);
+        _stopMcpOnExitCheckBox.Checked = settings.StopMcpOnExit;
 
         Text = "ChatLocalWork Manager";
         StartPosition = FormStartPosition.CenterScreen;
@@ -116,9 +113,7 @@ internal sealed class MainForm : Form
         _startButton.Click += async (_, _) => await RunLifecycleAsync(start: true);
         _stopButton.Click += async (_, _) => await RunLifecycleAsync(start: false);
         _refreshButton.Click += async (_, _) => await RefreshStatusAsync();
-        _environmentButton.Click += async (_, _) => await InspectEnvironmentAsync(showDialog: true);
-        _tailscaleLoginButton.Click += async (_, _) => await RunTailscaleLoginAsync();
-        _workspaceButton.Click += (_, _) => ChangeWorkspace();
+        _environmentSettingsButton.Click += async (_, _) => await OpenEnvironmentSettingsAsync();
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();
         _clearLogButton.Click += (_, _) => _logBox.Clear();
@@ -137,7 +132,7 @@ internal sealed class MainForm : Form
 
             await RefreshStatusAsync();
 
-            var environmentReady = await InspectEnvironmentAsync(showDialog: false);
+            var environmentReady = await InspectEnvironmentAsync();
             if (environmentReady)
             {
                 await RunLifecycleAsync(start: true);
@@ -146,7 +141,7 @@ internal sealed class MainForm : Form
             {
                 SetOperationStatus(
                     "환경 준비 필요",
-                    "환경 점검 결과를 확인하세요. Tailscale 로그인이 필요하면 로그인 버튼을 사용하세요.",
+                    "환경 설정을 열어 준비 상태와 필요한 조치를 확인하세요.",
                     Color.DarkOrange);
                 _statusTimer.Start();
             }
@@ -234,9 +229,7 @@ internal sealed class MainForm : Form
                      _startButton,
                      _stopButton,
                      _refreshButton,
-                     _environmentButton,
-                     _tailscaleLoginButton,
-                     _workspaceButton,
+                     _environmentSettingsButton,
                      _loadLogButton,
                      _openRepositoryButton,
                      _clearLogButton,
@@ -657,11 +650,11 @@ internal sealed class MainForm : Form
     {
         try
         {
-            _settings = _settings with
+            var settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile) with
             {
                 StopMcpOnExit = _stopMcpOnExitCheckBox.Checked,
             };
-            ManagerSettingsStore.Save(_paths.ManagerSettingsFile, _settings);
+            ManagerSettingsStore.Save(_paths.ManagerSettingsFile, settings);
         }
         catch (Exception ex)
         {
@@ -669,61 +662,40 @@ internal sealed class MainForm : Form
         }
     }
 
-    private void ChangeWorkspace()
+    private async Task OpenEnvironmentSettingsAsync()
     {
         if (_busy)
         {
             return;
         }
 
-        using var dialog = new FolderBrowserDialog
-        {
-            Description = $"새 Workspace 폴더를 선택하세요.\r\n현재: {_paths.WorkspaceRoot}",
-            UseDescriptionForTitle = true,
-            InitialDirectory = Directory.Exists(_paths.WorkspaceRoot)
-                ? _paths.WorkspaceRoot
-                : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            ShowNewFolderButton = true,
-        };
-
-        if (dialog.ShowDialog(this) != DialogResult.OK ||
-            string.IsNullOrWhiteSpace(dialog.SelectedPath))
-        {
-            return;
-        }
+        _statusTimer.Stop();
 
         try
         {
-            var selectedPath = Path.GetFullPath(dialog.SelectedPath);
-            Directory.CreateDirectory(selectedPath);
+            using var dialog = new EnvironmentSettingsForm(_paths, AppendManagerLog);
+            dialog.ShowDialog(this);
 
-            _settings = _settings with
+            if (dialog.RestartRequired)
             {
-                WorkspaceRoot = selectedPath,
-                StopMcpOnExit = _stopMcpOnExitCheckBox.Checked,
-            };
-            ManagerSettingsStore.Save(_paths.ManagerSettingsFile, _settings);
+                SetOperationStatus(
+                    "Manager 재시작 필요",
+                    "변경한 Workspace를 적용하려면 Manager를 다시 시작하세요.",
+                    Color.DarkOrange);
+                return;
+            }
 
-            AppendManagerLog($"Workspace 변경 예약 · {selectedPath}");
-            SetOperationStatus(
-                "Workspace 변경됨",
-                "새 Workspace는 Manager를 다시 시작하면 적용됩니다.",
-                Color.DarkOrange);
+            if (dialog.StartMcpRequested)
+            {
+                await RunLifecycleAsync(start: true);
+                return;
+            }
 
-            MessageBox.Show(
-                $"Workspace를 다음 경로로 변경했습니다.\r\n\r\n{selectedPath}\r\n\r\nManager를 다시 시작하면 적용됩니다.",
-                "Workspace 변경",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            await RefreshStatusAsync();
         }
-        catch (Exception ex)
+        finally
         {
-            AppendManagerLog($"Workspace 변경 실패 · {ex.Message}");
-            MessageBox.Show(
-                ex.Message,
-                "Workspace 변경 실패",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
+            _statusTimer.Start();
         }
     }
 
@@ -779,7 +751,7 @@ internal sealed class MainForm : Form
         return text;
     }
 
-    private async Task<bool> InspectEnvironmentAsync(bool showDialog)
+    private async Task<bool> InspectEnvironmentAsync()
     {
         if (_busy)
         {
@@ -788,8 +760,7 @@ internal sealed class MainForm : Form
 
         try
         {
-            var result = await _bootstrapService.PrepareAsync(
-                AppendManagerLog);
+            var result = await _bootstrapService.PrepareAsync(AppendManagerLog);
 
             foreach (var component in result.Components)
             {
@@ -797,121 +768,13 @@ internal sealed class MainForm : Form
                     $"환경 · {component.Name} · {component.State} · {component.Detail}");
             }
 
-            if (showDialog)
-            {
-                var details = string.Join(
-                    Environment.NewLine,
-                    result.Components.Select(
-                        component =>
-                            $"{component.Name}: {component.State} · {component.Detail}"));
-
-                MessageBox.Show(
-                    details,
-                    result.Ready ? "환경 READY" : "환경 준비 필요",
-                    MessageBoxButtons.OK,
-                    result.Ready
-                        ? MessageBoxIcon.Information
-                        : MessageBoxIcon.Warning);
-            }
-
             return result.Ready;
         }
         catch (Exception ex)
         {
             AppendManagerLog($"환경 점검 실패 · {ex.Message}");
-
-            if (showDialog)
-            {
-                MessageBox.Show(
-                    ex.Message,
-                    "환경 점검 실패",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-
             return false;
         }
-    }
-
-    private async Task RunTailscaleLoginAsync()
-    {
-        if (_busy)
-        {
-            return;
-        }
-
-        SetBusy(true, "TAILSCALE_LOGIN");
-        _statusTimer.Stop();
-        SetOperationStatus(
-            "Tailscale 로그인 진행 중",
-            "브라우저가 열리면 Tailscale 인증을 완료하세요.",
-            Color.SteelBlue);
-
-        var shouldStart = false;
-
-        try
-        {
-            var loggedIn = await _bootstrapService.StartTailscaleLoginAsync(
-                AppendManagerLog);
-
-            if (!loggedIn)
-            {
-                SetOperationStatus(
-                    "Tailscale 로그인 미완료",
-                    "로그인 상태를 확인한 뒤 다시 시도하세요.",
-                    Color.DarkOrange);
-                return;
-            }
-
-            var ready = await InspectEnvironmentCoreAsync();
-            if (!ready)
-            {
-                SetOperationStatus(
-                    "환경 준비 필요",
-                    "Tailscale 로그인은 완료됐지만 다른 준비 항목이 남아 있습니다.",
-                    Color.DarkOrange);
-                return;
-            }
-
-            SetOperationStatus(
-                "환경 READY",
-                "필수 환경 구성이 완료되었습니다. MCP를 시작합니다.",
-                Color.ForestGreen);
-            shouldStart = true;
-        }
-        catch (Exception ex)
-        {
-            AppendManagerLog($"Tailscale 로그인 실패 · {ex.Message}");
-            SetOperationStatus(
-                "Tailscale 로그인 오류",
-                ex.Message,
-                Color.Firebrick);
-        }
-        finally
-        {
-            SetBusy(false);
-            await RefreshStatusAsync();
-            _statusTimer.Start();
-        }
-
-        if (shouldStart)
-        {
-            await RunLifecycleAsync(start: true);
-        }
-    }
-
-    private async Task<bool> InspectEnvironmentCoreAsync()
-    {
-        var result = await _bootstrapService.PrepareAsync(
-            AppendManagerLog);
-
-        foreach (var component in result.Components)
-        {
-            AppendManagerLog(
-                $"환경 · {component.Name} · {component.State} · {component.Detail}");
-        }
-
-        return result.Ready;
     }
 
     private void OpenRepository()
@@ -937,9 +800,7 @@ internal sealed class MainForm : Form
         _startButton.Enabled = !busy;
         _stopButton.Enabled = !busy;
         _refreshButton.Enabled = !busy;
-        _environmentButton.Enabled = !busy;
-        _tailscaleLoginButton.Enabled = !busy;
-        _workspaceButton.Enabled = !busy;
+        _environmentSettingsButton.Enabled = !busy;
         _loadLogButton.Enabled = !busy;
 
         _startButton.Text = busy && operation == "START" ? "Starting..." : "Start MCP";
