@@ -83,9 +83,9 @@ internal sealed class EnvironmentSettingsForm : Form
         };
 
         root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 100));
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 112));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
+        root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         var titlePanel = new Panel { Dock = DockStyle.Fill };
 
@@ -124,7 +124,10 @@ internal sealed class EnvironmentSettingsForm : Form
         workspaceTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         workspaceTable.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         workspaceTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        workspaceTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+        workspaceTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+        _workspaceButton.MinimumSize = new Size(0, 34);
+        _workspaceButton.Padding = new Padding(7, 2, 7, 2);
 
         _workspaceLabel.Text = _displayWorkspace;
         workspaceTable.Controls.Add(_workspaceLabel, 0, 0);
@@ -157,20 +160,22 @@ internal sealed class EnvironmentSettingsForm : Form
         };
         environmentTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
         environmentTable.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        environmentTable.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+        environmentTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         var actions = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
             WrapContents = false,
-            Padding = new Padding(0, 6, 0, 0),
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(0, 6, 0, 6),
         };
 
         foreach (var button in new[] { _inspectButton, _tailscaleLoginButton })
         {
-            button.Height = 30;
-            button.Padding = new Padding(7, 0, 7, 0);
+            button.MinimumSize = new Size(0, 34);
+            button.Padding = new Padding(7, 2, 7, 2);
             actions.Controls.Add(button);
         }
 
@@ -183,10 +188,12 @@ internal sealed class EnvironmentSettingsForm : Form
         {
             Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.RightToLeft,
-            Padding = new Padding(0, 10, 0, 0),
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(0, 10, 0, 4),
         };
-        _closeButton.Height = 30;
-        _closeButton.Padding = new Padding(10, 0, 10, 0);
+        _closeButton.MinimumSize = new Size(0, 34);
+        _closeButton.Padding = new Padding(10, 2, 10, 2);
         footer.Controls.Add(_closeButton);
 
         root.Controls.Add(titlePanel, 0, 0);
