@@ -76,6 +76,13 @@ export function registerWindowsRunnerTools(server: McpServer, config: AppConfig)
             runtime?: string;
             executionMode?: string;
             heartbeatAt?: string;
+            busy?: boolean;
+            activeRequest?: {
+              id?: string;
+              executable?: string;
+              startedAt?: string;
+              timeoutMs?: number;
+            } | null;
           };
           const heartbeatMs = Date.parse(ready.heartbeatAt ?? "");
           const heartbeatFresh = Number.isFinite(heartbeatMs) && Date.now() - heartbeatMs <= 10_000;
@@ -88,7 +95,33 @@ export function registerWindowsRunnerTools(server: McpServer, config: AppConfig)
           ) {
             throw new Error("invalid or stale ready state");
           }
-        } catch {
+
+          if (ready.busy && ready.activeRequest) {
+            const startedMs = Date.parse(ready.activeRequest.startedAt ?? "");
+            const activeTimeoutMs = Math.max(
+              Number(ready.activeRequest.timeoutMs ?? config.windowsRunnerTimeoutMs),
+              1_000,
+            );
+
+            if (
+              Number.isFinite(startedMs) &&
+              Date.now() - startedMs > activeTimeoutMs + 5_000
+            ) {
+              throw new Error(
+                "Windows Runner is stuck on " +
+                  (ready.activeRequest.executable ?? "unknown") +
+                  " (request " +
+                  (ready.activeRequest.id ?? "unknown") +
+                  "). Restart the Runner.",
+              );
+            }
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "";
+          if (message.startsWith("Windows Runner is stuck on ")) {
+            throw error;
+          }
+
           throw new Error(
             "Windows Runner is not ready. Start MCP with StartMCP.bat and verify %LOCALAPPDATA%\\ChatLocalWork\\runtime\\windows-runner\\state\\ready.json.",
           );

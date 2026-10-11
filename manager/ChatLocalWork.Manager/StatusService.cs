@@ -108,6 +108,48 @@ internal sealed class StatusService
                 return new ComponentStatus("Windows Runner", ComponentState.Stopped, $"PID {pid} 종료됨");
             }
 
+            if (root.TryGetProperty("busy", out var busyElement) &&
+                busyElement.ValueKind is JsonValueKind.True &&
+                root.TryGetProperty("activeRequest", out var activeRequest) &&
+                activeRequest.ValueKind == JsonValueKind.Object)
+            {
+                var requestId = activeRequest.TryGetProperty("id", out var idElement)
+                    ? idElement.GetString()
+                    : null;
+                var executable = activeRequest.TryGetProperty("executable", out var executableElement)
+                    ? executableElement.GetString()
+                    : null;
+                var timeoutMs = activeRequest.TryGetProperty("timeoutMs", out var timeoutElement) &&
+                                timeoutElement.TryGetInt32(out var parsedTimeout)
+                    ? parsedTimeout
+                    : 120_000;
+
+                if (activeRequest.TryGetProperty("startedAt", out var startedElement) &&
+                    DateTimeOffset.TryParse(startedElement.GetString(), out var activeStartedAt))
+                {
+                    var activeAge = DateTimeOffset.UtcNow - activeStartedAt.ToUniversalTime();
+                    var staleAfter = TimeSpan.FromMilliseconds(timeoutMs + 5_000);
+
+                    if (activeAge > staleAfter)
+                    {
+                        return new ComponentStatus(
+                            "Windows Runner",
+                            ComponentState.Warning,
+                            $"명령 응답 정지 의심 · {executable ?? "unknown"} · {activeAge.TotalSeconds:0}초 · {requestId ?? "no-id"}");
+                    }
+
+                    return new ComponentStatus(
+                        "Windows Runner",
+                        ComponentState.Ready,
+                        $"BUSY · {executable ?? "unknown"} · {activeAge.TotalSeconds:0}초");
+                }
+
+                return new ComponentStatus(
+                    "Windows Runner",
+                    ComponentState.Ready,
+                    $"BUSY · {executable ?? "unknown"}");
+            }
+
             return new ComponentStatus("Windows Runner", ComponentState.Ready, $"PID {pid} · LocalAppData runtime");
         }
         catch

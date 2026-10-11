@@ -141,6 +141,7 @@ function execute(executable, argv, workdir, timeoutMs) {
     const stderr = { text: "", truncated: false };
     let finished = false;
     let timedOut = false;
+    let timeoutFallback = null;
 
     const child = spawn(executable, argv, {
       cwd: workdir,
@@ -149,27 +150,20 @@ function execute(executable, argv, workdir, timeoutMs) {
       stdio: ["ignore", "pipe", "pipe"],
     });
 
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", chunk => appendBounded(stdout, chunk));
-    child.stderr.on("data", chunk => appendBounded(stderr, chunk));
-
-    const timer = setTimeout(() => {
-      timedOut = true;
-      try {
-        spawnSync("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], {
-          windowsHide: true,
-          shell: false,
-          stdio: "ignore",
-          timeout: 10000,
-        });
-      } catch {}
-    }, timeoutMs);
-
     const done = (exitCode, error) => {
       if (finished) return;
+
       finished = true;
       clearTimeout(timer);
+
+      if (timeoutFallback) {
+        clearTimeout(timeoutFallback);
+        timeoutFallback = null;
+      }
+
+      try { child.stdout?.destroy(); } catch {}
+      try { child.stderr?.destroy(); } catch {}
+
       resolve({
         exitCode,
         stdout: stdout.text,
@@ -182,10 +176,36 @@ function execute(executable, argv, workdir, timeoutMs) {
       });
     };
 
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", chunk => appendBounded(stdout, chunk));
+    child.stderr.on("data", chunk => appendBounded(stderr, chunk));
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+
+      try {
+        spawnSync("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], {
+          windowsHide: true,
+          shell: false,
+          stdio: "ignore",
+          timeout: 10000,
+        });
+      } catch {}
+
+      // Some descendant processes can keep inherited stdout/stderr handles open.
+      // Never wait forever for ChildProcess "close" after timeout.
+      timeoutFallback = setTimeout(() => {
+        done(null, "Process did not close after timeout kill.");
+      }, 3000);
+    }, timeoutMs);
+
     child.on("error", err => done(null, String(err.message || err)));
     child.on("close", code => done(code, null));
   });
 }
+
+let activeRequest = null;
 
 function writeReadyState() {
   writeJsonAtomic(readyFile, {
@@ -199,6 +219,8 @@ function writeReadyState() {
     queueDir,
     startedAt: runnerStartedAt,
     heartbeatAt: new Date().toISOString(),
+    busy: activeRequest !== null,
+    activeRequest,
   });
 }
 
@@ -247,13 +269,28 @@ async function processOne() {
       try {
         const executable = validateExecutable(request.executable);
         const argv = Array.isArray(request.args) ? request.args.map(String) : [];
-        const workdir = path.resolve(String(request.workdir || workspaceRoot));
+        const requestedWorkdir = String(request.workdir || "").trim();
+        const workdir = requestedWorkdir
+          ? (path.isAbsolute(requestedWorkdir)
+              ? path.resolve(requestedWorkdir)
+              : path.resolve(workspaceRoot, requestedWorkdir))
+          : workspaceRoot;
         if (!isInsideWorkspace(workdir)) throw new Error("workdir must be inside workspace root");
         if (!fs.existsSync(workdir) || !fs.statSync(workdir).isDirectory()) {
           throw new Error("workdir does not exist: " + workdir);
         }
 
         const timeoutMs = Math.min(Math.max(Number(request.timeoutMs || defaultTimeoutMs), 1000), 60 * 60 * 1000);
+
+        activeRequest = {
+          id,
+          executable,
+          args: argv,
+          workdir,
+          startedAt,
+          timeoutMs,
+        };
+        writeReadyState();
 
         log("START " + id + ": " + executable + " " + argv.join(" "));
         const result = await execute(executable, argv, workdir, timeoutMs);
@@ -269,6 +306,8 @@ async function processOne() {
           ...result,
         });
         log("DONE " + id + ": exitCode=" + result.exitCode + " timedOut=" + result.timedOut);
+        activeRequest = null;
+        writeReadyState();
       } catch (err) {
         writeJsonAtomic(responseFile, {
           id,
@@ -282,6 +321,8 @@ async function processOne() {
           completedAt: new Date().toISOString(),
         });
         log("REJECT " + id + ": " + (err?.message || err));
+        activeRequest = null;
+        writeReadyState();
       }
       break;
     }

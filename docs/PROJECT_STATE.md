@@ -118,6 +118,12 @@ Docker mount:
 - `%LOCALAPPDATA%\ChatLocalWork\config\app-config.json` 기반 설치형 경로 지원
 - `appRoot`와 `workspaceRoot` 분리
 - Start/Stop이 `CHATLOCALWORK_WORKSPACE_ROOT`를 통해 동일 workspace 사용
+- Windows Runner의 상대 `workdir`은 `windows-runner/`가 아니라 `workspaceRoot` 기준으로 해석하도록 수정
+- Runner 명령 timeout 후 ChildProcess `close` 이벤트가 오지 않아 전체 큐가 영구 정지하는 문제를 방지하기 위해 3초 fallback watchdog 추가
+- `ready.json`에 `busy` / `activeRequest` 상태 기록
+- Manager가 active request의 timeout 초과를 감지해 Warning으로 표시
+- MCP bridge가 stale active request를 감지하면 새 `windows_exec`를 오래 대기하지 않고 즉시 stuck 오류 반환
+- 일반 개발 프로젝트는 ChatLocalWork 저장소 내부에 둘 필요 없이 workspace의 독립 폴더로 유지 가능
 - Docker `SHARED_PATH`를 실행 시 workspaceRoot로 강제 전달하여 로컬 `.env` 절대경로 의존 제거
 - ChatLocalWork 전용 portable Node 경로 지원
 - 설치형 app clone은 Git HEAD 또는 `appVersion`을 source identity로 사용하여 fast path 유지

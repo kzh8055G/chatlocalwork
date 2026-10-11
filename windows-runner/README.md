@@ -69,6 +69,23 @@ node runner.cjs ^
 
 실제 환경에서는 `%LOCALAPPDATA%`를 사용해 queue 경로를 구성하는 것이 권장됩니다.
 
+## workspace와 workdir
+
+`workspaceRoot`는 Windows Runner가 접근 가능한 프로젝트 작업공간의 루트입니다.
+
+- 절대 `workdir`은 반드시 `workspaceRoot` 내부여야 합니다.
+- 상대 `workdir`은 Runner 소스 폴더가 아니라 `workspaceRoot`를 기준으로 해석합니다.
+- 따라서 일반 프로젝트를 `windows-runner/` 아래에 둘 필요가 없습니다.
+
+예:
+
+```text
+workspaceRoot = C:\Users\<user>\Documents\chat_local_workspace
+workdir       = MediaDownloaderApp
+
+=> C:\Users\<user>\Documents\chat_local_workspace\MediaDownloaderApp
+```
+
 ## Docker 연결
 
 Windows runtime 폴더는 Docker에 다음 경로로 bind mount됩니다.

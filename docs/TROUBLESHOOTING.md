@@ -65,10 +65,24 @@ Stop MCP 후 다시 Start MCP 한다.
 
 1. `ready.json`이 존재하는지
 2. Runner PID가 실제 실행 중인지
-3. Docker에 runtime bind mount가 붙어 있는지
-4. `requests/`에 요청 JSON이 생성되는지
-5. `responses/`에 응답 JSON이 생성되는지
-6. `runner.log`에 REJECT / timeout / spawn 오류가 있는지
+3. `ready.json`의 `busy` / `activeRequest` 상태 확인
+4. Docker에 runtime bind mount가 붙어 있는지
+5. `requests/`에 요청 JSON이 생성되는지
+6. `responses/`에 응답 JSON이 생성되는지
+7. `runner.log`에 START 이후 DONE이 누락된 명령이 있는지
+8. `runner.log`에 REJECT / timeout / spawn 오류가 있는지
+
+Runner는 명령 timeout 시 process tree를 종료한 뒤에도 ChildProcess `close` 이벤트가 오지 않는 경우를 대비해 3초 fallback watchdog으로 실행 Promise를 강제 종료한다.
+
+`ready.json`에는 현재 실행 중인 명령이 있으면 다음 정보가 기록된다.
+
+- `busy: true`
+- `activeRequest.id`
+- `activeRequest.executable`
+- `activeRequest.startedAt`
+- `activeRequest.timeoutMs`
+
+Manager는 active request가 timeout 한도를 초과하면 Windows Runner를 READY가 아니라 Warning으로 표시한다.
 
 Docker 내부 Runner queue:
 
