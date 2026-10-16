@@ -264,3 +264,9 @@ timeoutMs
 - `supergateway`를 프로젝트 전용 종속성으로 설치했으며 기본 포트 4188에서 `127.0.0.1`만 바인딩하고 호스트 전용 API 키 파일을 요구합니다.
 - `rea-bridge/smoke.cjs` 실검증: API 키가 없는 HTTP 요청은 401, API 키가 있는 `initialize` 요청은 HTTP 200 및 REA 6.5.0 serverInfo 반환.
 - 아직 외부 HTTPS/Tailscale Funnel로 공개하거나 ChatGPT 앱에 등록하지 않았습니다. 공개 전에 OAuth 인증·인가, tool allowlist, 안정적인 lifecycle, 외부 노출 경계 검증이 필요합니다.
+
+### REA Bridge 읽기 전용 도구 정책 (2026-10-16)
+
+- 207개 기본 도구 중 바이너리 개요·절차·문자열·어셈블리·디컴파일 등을 위한 **20개 읽기 중심 도구**만 노출하도록 `supergateway --tools` 필터를 적용했습니다.
+- Windows 실검증: 미인증 401, 인증된 초기화 200, tools/list 20개, 차단된 쓰기 도구 `set_comment` 직접 호출 거부 확인.
+- OAuth를 통한 원격 ChatGPT 앱 등록·외부 HTTPS 공개는 별도 인증 검증이 필요해 미실시. LocalWork의 기존 OAuth/Tailscale 동작은 변경하지 않았습니다.

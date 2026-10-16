@@ -22,6 +22,15 @@ const cli = path.resolve(__dirname, 'node_modules', 'supergateway', 'dist', 'ind
 if (!fs.existsSync(cli)) throw new Error('Run npm install in rea-bridge first');
 const stdio = `cmd.exe /d /c "${npx}" -y rea-agents@6.5.0 mcp`;
 // Supergateway binding must be verified before exposure; API key required.
+const readOnlyTools = [
+  'list_documents', 'current_document', 'list_segments', 'list_procedures',
+  'list_strings', 'list_names', 'search_procedures', 'search_strings',
+  'read_bytes', 'procedure_info', 'procedure_pseudo_code',
+  'procedure_assembly', 'procedure_callers', 'procedure_callees',
+  'read_function_instructions', 'inspect_native_instruction',
+  'inspect_native_data_type', 'inspect_native_load_image',
+  'address_to_file_offset', 'procedure_references',
+];
 const child = spawn(process.execPath, [cli,
   '--stdio', stdio,
   '--outputTransport', 'streamableHttp',
@@ -30,6 +39,7 @@ const child = spawn(process.execPath, [cli,
   '--host', '127.0.0.1',
   '--streamableHttpPath', '/mcp',
   '--apiKeyFile', apiKeyFile,
+  ...readOnlyTools.flatMap(name => ['--tools', name]),
 ], { env: { ...process.env, REA_ANALYSIS_PROVIDER: 'ghidra' },
      cwd: __dirname, stdio: 'inherit', shell: false, windowsHide: true });
 child.on('exit', code => { process.exitCode = code || 0; });

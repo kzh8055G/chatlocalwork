@@ -26,6 +26,18 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),cryp
  const body=await resp.text();
  console.log('AUTH_STATUS='+resp.status); console.log('RESPONSE='+body.slice(0,900));
  if(resp.status!==200 || !body.includes('serverInfo'))throw Error('MCP initialize unsuccessful');
+ const sessionId=resp.headers.get('mcp-session-id');
+ const listResp=await fetch(target,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+key,accept:'application/json, text/event-stream','mcp-protocol-version':'2025-06-18',...(sessionId?{'mcp-session-id':sessionId}:{})},body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/list',params:{}})});
+ const listBody=await listResp.text();
+ const dataLine=listBody.split('\n').find(line=>line.startsWith('data: '));
+ const toolData=dataLine?JSON.parse(dataLine.slice(6)):JSON.parse(listBody);
+ const toolNames=(toolData.result?.tools||[]).map(tool=>tool.name);
+ console.log('TOOL_COUNT='+toolNames.length+' TOOLS='+JSON.stringify(toolNames.slice(0,40)));
+ if(toolNames.length!==20 || toolNames.includes('set_comment') || !toolNames.includes('procedure_pseudo_code'))throw Error('Tool allowlist failed: '+toolNames.length);
+ const blocked=await fetch(target,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+key,accept:'application/json, text/event-stream','mcp-protocol-version':'2025-06-18',...(sessionId?{'mcp-session-id':sessionId}:{})},body:JSON.stringify({jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'set_comment',arguments:{}}})});
+ const blockedText=await blocked.text();
+ if(!blockedText.includes('not allowed') && !blockedText.includes('not available') && !blockedText.includes('not found') && !blockedText.includes('Unknown tool')) throw Error('Blocked tool did not return an explicit denial: '+blockedText.slice(0,300));
+ console.log('BLOCKED_MUTATION=DENIED');
  console.log('SMOKE_PASS');
  }finally{
  try{c.kill()}catch{}
