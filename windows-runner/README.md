@@ -103,3 +103,16 @@ LocalWorkMCP는 같은 queue를 읽고 request/response JSON으로 Runner와 통
 - 24시간 이상 남은 orphan `requests/` / `responses/` 파일은 자동 삭제합니다.
 - `runner.log`와 `launcher.log`는 약 4MB를 넘으면 최근 약 2MB만 유지합니다.
 - 정상 Stop에서는 request/response queue와 `start-state.json`을 정리합니다.
+
+## 명령 실행 승인 (하이브리드 정책)
+
+- `runner-config.json`의 `allowedExecutables` 및 workspace 내부 절대경로 `.exe` 실행은 기존과 동일하게 처리합니다.
+- `blockedExecutables`에 있는 셸/스크립트 실행기는 계속 차단합니다.
+- 기타 프로그램은 Manager에 **이번만 허용 / 동일 명령 세션 허용 / whitelist 추가 / 거부** 선택 창이 표시됩니다.
+- whitelist 추가는 Windows 호스트의 `%LOCALAPPDATA%\ChatLocalWork\runtime\approvals\trusted.json`에 **실제 실행 파일 절대 경로 + SHA-256**을 저장합니다. 프로그램이 업데이트되어 해시가 달라지면 다시 승인받습니다.
+- 세션 허용은 실행 파일 경로, SHA-256, 인수 및 작업 디렉터리가 모두 동일한 경우에만 유효하며 Runner 재시작 시 사라집니다.
+- 승인 요청/응답은 호스트 전용 `runtime/approvals/`에 저장하며 Docker 공유 queue에 노출하지 않습니다. Manager가 실행되지 않거나 사용자가 응답하지 않으면 최대 90초 후 거부합니다.
+- `shell:false`, 작업 디렉터리 workspace 제한 및 실행 파일 차단 정책은 그대로 유지됩니다.
+- 이 승인은 Windows Runner의 `windows_exec` 요청에만 적용됩니다. 기존 LocalWork의 다른 명령 실행 도구를 통한 시스템 접근을 막는 보안 경계는 아닙니다.
+
+변경 사항을 적용하려면 Manager를 종료하고 실행 중인 Runner를 새 버전으로 재시작한 후 Manager를 다시 실행해야 합니다.

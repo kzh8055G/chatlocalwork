@@ -1,6 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 const { spawn, spawnSync } = require("child_process");
+const policy = require("./approval-policy.cjs");
+const { awaitApproval } = require("./approval-gate.cjs");
 
 function parseArgs(argv) {
   const out = {};
@@ -22,6 +24,10 @@ const requestsDir = path.join(queueDir, "requests");
 const responsesDir = path.join(queueDir, "responses");
 const stateDir = path.join(queueDir, "state");
 const logDir = path.join(queueDir, "logs");
+// Host-only authorization data: never placed in the Docker bind-mounted queue.
+const approvalsDir = path.join(path.dirname(queueDir), "approvals");
+const trustedFile = path.join(approvalsDir, "trusted.json");
+const sessionApprovals = new Set();
 const readyFile = path.join(stateDir, "ready.json");
 const logFile = path.join(logDir, "runner.log");
 const runnerStartedAt = new Date().toISOString();
@@ -29,7 +35,7 @@ const staleQueueMaxAgeMs = 24 * 60 * 60 * 1000;
 const maxLogBytes = 4 * 1024 * 1024;
 const retainedLogBytes = 2 * 1024 * 1024;
 
-for (const dir of [requestsDir, responsesDir, stateDir, logDir]) {
+for (const dir of [requestsDir, responsesDir, stateDir, logDir, approvalsDir]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
@@ -103,19 +109,31 @@ function isInsideWorkspace(candidate) {
   return resolved === root || resolved.startsWith(root + path.sep);
 }
 
-function validateExecutable(executable) {
+async function authorize(executable, argv, workdir, id, timeoutMs) {
   const raw = String(executable || "").trim();
-  if (!raw) throw new Error("executable is required");
-
   const base = path.basename(raw).toLowerCase();
   if (blockedExecutables.has(base)) throw new Error("Executable is blocked: " + base);
+  // Preserve current whitelist behavior and workspace applications.
   if (allowedExecutables.has(base)) return raw;
+  if (path.isAbsolute(raw) && raw.toLowerCase().endsWith(".exe") &&
+      isInsideWorkspace(raw) && fs.existsSync(raw)) return path.resolve(raw);
 
-  if (path.isAbsolute(raw) && raw.toLowerCase().endsWith(".exe") && isInsideWorkspace(raw) && fs.existsSync(raw)) {
-    return path.resolve(raw);
+  const resolved = policy.resolveExecutable(raw, workdir);
+  const hash = await policy.sha256(resolved);
+  const key = policy.sessionKey(resolved, hash, argv, workdir);
+  if (sessionApprovals.has(key) || policy.readTrusted(trustedFile).some(entry =>
+      policy.normalizePath(entry.path) === policy.normalizePath(resolved) && entry.sha256 === hash)) return resolved;
+
+  const choice = await awaitApproval({ approvalsDir, id, executable: resolved, args: argv,
+    workdir, hash, timeoutMs: Math.min(timeoutMs, 90000) });
+  if (choice === "session") sessionApprovals.add(key);
+  // Manager records persisted trust before returning the decision.
+  if (choice === "trust" && !policy.readTrusted(trustedFile).some(entry =>
+      policy.normalizePath(entry.path) === policy.normalizePath(resolved) && entry.sha256 === hash)) {
+    throw new Error("Trusted executable record was not saved by Manager.");
   }
-
-  throw new Error("Executable is not allowed: " + raw);
+  if (await policy.sha256(resolved) !== hash) throw new Error("Executable changed after approval.");
+  return resolved;
 }
 
 function appendBounded(state, chunk) {
@@ -267,7 +285,7 @@ async function processOne() {
 
       const startedAt = new Date().toISOString();
       try {
-        const executable = validateExecutable(request.executable);
+        const requestedExecutable = String(request.executable || "");
         const argv = Array.isArray(request.args) ? request.args.map(String) : [];
         const requestedWorkdir = String(request.workdir || "").trim();
         const workdir = requestedWorkdir
@@ -281,6 +299,8 @@ async function processOne() {
         }
 
         const timeoutMs = Math.min(Math.max(Number(request.timeoutMs || defaultTimeoutMs), 1000), 60 * 60 * 1000);
+
+        const executable = await authorize(requestedExecutable, argv, workdir, id, timeoutMs);
 
         activeRequest = {
           id,

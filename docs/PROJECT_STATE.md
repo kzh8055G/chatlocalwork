@@ -233,3 +233,12 @@ timeoutMs
 ```
 
 새 실행 파일이 필요하면 우선 `windows-runner/runner-config.json`의 allowlist 정책을 검토한다.
+
+### Windows Runner 실행 승인 정책 (2026-10-16)
+
+- 기존 whitelist는 유지하고, 미등록 Windows 실행 파일에 대한 Manager 승인 흐름을 추가했습니다.
+- 새 파일: `windows-runner/approval-policy.cjs`, `approval-gate.cjs`, `approval.test.cjs`, `manager/ChatLocalWork.Manager/WindowsApprovalService.cs`.
+- 한 번 허용 / 동일 명령 세션 허용 / 경로+SHA-256 신뢰 등록 / 거부를 지원합니다. 기존 blocked 목록은 그대로 유지합니다.
+- Manager는 로컬 전용 approvals 폴더의 요청을 표시하고 결정을 기록합니다. 승인 시간 초과 시 자동 거부합니다.
+- 검증: Windows Manager `dotnet build --no-restore` 성공(경고 0, 오류 0), Node 승인 정책 테스트 4개 통과.
+- 실제 사용자 승인 팝업을 통한 종단간 UI 검증은 Runner와 Manager 재시작 후 필요합니다.

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace ChatLocalWork.Manager;
 
@@ -22,6 +22,8 @@ internal sealed class MainForm : Form
     private readonly Dictionary<string, Label> _stateLabels = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Label> _detailLabels = new(StringComparer.OrdinalIgnoreCase);
     private readonly System.Windows.Forms.Timer _statusTimer;
+    private readonly System.Windows.Forms.Timer _approvalTimer;
+    private readonly WindowsApprovalService _approvals;
 
     private readonly Button _startButton = new() { Text = "Start MCP", AutoSize = true };
     private readonly Button _stopButton = new() { Text = "Stop MCP", AutoSize = true };
@@ -97,6 +99,7 @@ internal sealed class MainForm : Form
         _lifecycleService = new MpcLifecycleService(paths);
         _statusService = new StatusService(paths);
         _bootstrapService = new BootstrapService(paths);
+        _approvals = new WindowsApprovalService(paths.RunnerQueueDirectory);
 
         var settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile);
         _stopMcpOnExitCheckBox.Checked = settings.StopMcpOnExit;
@@ -121,6 +124,10 @@ internal sealed class MainForm : Form
 
         _statusTimer = new System.Windows.Forms.Timer { Interval = 5000 };
         _statusTimer.Tick += async (_, _) => await RefreshStatusAsync();
+
+        _approvalTimer = new System.Windows.Forms.Timer { Interval = 500 };
+        _approvalTimer.Tick += (_, _) => _approvals.Poll(this, AppendManagerLog);
+        _approvalTimer.Start();
 
         Shown += async (_, _) =>
         {
@@ -148,7 +155,7 @@ internal sealed class MainForm : Form
         };
 
         FormClosing += MainForm_FormClosing;
-        FormClosed += (_, _) => _statusTimer.Dispose();
+        FormClosed += (_, _) => { _statusTimer.Dispose(); _approvalTimer.Dispose(); };
     }
 
     private Control BuildLayout()
