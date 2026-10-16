@@ -257,3 +257,10 @@ timeoutMs
 - Windows 환경의 REA `doctor`: Ghidra 12.1.4, JDK, native Windows control 모두 정상 확인.
 - `CPS1NativeRecompiler/build/native/sample.exe` 대상으로 `rea inspect --provider ghidra` 검증 성공: 함수 570개, 문자열 286개, 메모리 세그먼트 8개. 분석은 읽기 전용입니다.
 - ChatGPT에서 직접 사용하는 독립 HTTPS MCP 연결은 아직 등록 전입니다. 기존 Codex MCP 등록과 분리해 HTTP 브리지의 접근제어 및 원격 경로 매핑을 검증해야 합니다.
+
+### REA 직접 연결용 HTTP 브리지 로컬 검증 (2026-10-16)
+
+- `rea-bridge/`에 별도 Windows REA 6.5.0 stdio → Streamable HTTP 브리지를 구성했습니다. Codex의 기존 REA MCP 설정은 변경하지 않았습니다.
+- `supergateway`를 프로젝트 전용 종속성으로 설치했으며 기본 포트 4188에서 `127.0.0.1`만 바인딩하고 호스트 전용 API 키 파일을 요구합니다.
+- `rea-bridge/smoke.cjs` 실검증: API 키가 없는 HTTP 요청은 401, API 키가 있는 `initialize` 요청은 HTTP 200 및 REA 6.5.0 serverInfo 반환.
+- 아직 외부 HTTPS/Tailscale Funnel로 공개하거나 ChatGPT 앱에 등록하지 않았습니다. 공개 전에 OAuth 인증·인가, tool allowlist, 안정적인 lifecycle, 외부 노출 경계 검증이 필요합니다.

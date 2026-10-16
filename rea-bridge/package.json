@@ -1,0 +1,7 @@
+{
+  "name": "chatlocalwork-rea-bridge",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Localhost-only authenticated bridge for Windows REA stdio MCP",
+  "dependencies": { "supergateway": "^4.0.0" }
+}
