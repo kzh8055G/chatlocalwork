@@ -25,3 +25,11 @@
 - 20개 도구 제한은 MCP 라우팅 기능 제한이며 파일 시스템 및 REA 프로세스 자체를 OS 수준에서 격리하지 않습니다. 네이티브 분석은 파일 내용을 입력받으므로 신뢰하지 않는 파일을 무분별하게 공급하지 않아야 합니다.
 - 현재 localhost API 키 브리지를 인터넷에 직접 공개하지 않습니다. ChatGPT 원격 등록에는 **OAuth 리소스 서버 검증**, CSRF/PKCE/redirect 검증, TLS, 최소권한, 요청 제한, 접근 로그 및 세션 종료 검증이 필요합니다.
 - 기존 LocalWork OAuth 토큰을 REA 브리지의 정적 API 키처럼 사용하거나 헤더만 전달하여 인증을 우회시키지 않습니다. 인가 대상(resource/audience)을 분리한 별도 인증 계층이 필요합니다.
+
+## REA 전용 OAuth 게이트웨이: 실험 단계
+
+`oauth-gateway.cjs`는 별도의 포트(기본 4189), 별도의 OAuth 승인 키 및 별도의 토큰 공간을 갖는 **로컬 검증용 프로토타입**입니다. `REA_PUBLIC_ORIGIN`은 예를 들어 `https://example.test`처럼 HTTPS origin이고, 공개 MCP 리소스는 `{origin}/rea/mcp`입니다. 업스트림 REA는 `http://127.0.0.1:4188/mcp`입니다. `REA_OAUTH_APPROVAL_KEY_FILE`과 `REA_BRIDGE_API_KEY_FILE`에는 서로 다른 32자 이상의 키를 저장해야 합니다. LocalWork가 사용하는 인증키를 재사용하지 마세요.
+
+`node --test oauth-gateway.test.cjs`로 인증 코드 PKCE, 리소스 분리, 최초 인증, 갱신 토큰 회전, 잘못된 클라이언트 요청과 업스트림 전달을 검사합니다.
+
+**주의:** 이 게이트웨이는 현재 메모리 기반 토큰/클라이언트 저장소, 세션·감사·자원제한 미완성, 동시성 정책·OAuth 2.1 전체 호환성 미검증 상태입니다. Tailscale Funnel과 공개 HTTPS에 연결하지 마세요. 정식 공개 전에 저장소 지속성 및 토큰 패밀리 무효화, 동적 클라이언트 등록 제한, 승인 흐름 CSRF 방어, Origin/Host 검증, HTTP 스트리밍 및 장시간 세션 테스트, 호출 도구별 최소 권한, 외부 보안 검토가 필요합니다.

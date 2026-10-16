@@ -270,3 +270,9 @@ timeoutMs
 - 207개 기본 도구 중 바이너리 개요·절차·문자열·어셈블리·디컴파일 등을 위한 **20개 읽기 중심 도구**만 노출하도록 `supergateway --tools` 필터를 적용했습니다.
 - Windows 실검증: 미인증 401, 인증된 초기화 200, tools/list 20개, 차단된 쓰기 도구 `set_comment` 직접 호출 거부 확인.
 - OAuth를 통한 원격 ChatGPT 앱 등록·외부 HTTPS 공개는 별도 인증 검증이 필요해 미실시. LocalWork의 기존 OAuth/Tailscale 동작은 변경하지 않았습니다.
+
+### REA 원격 OAuth 게이트웨이 프로토타입 (2026-10-16)
+
+- `rea-bridge/oauth-gateway.cjs`에 별도 OAuth2 PKCE 승인/클라이언트 등록/액세스 토큰·리프레시 토큰/보호 리소스 메타데이터 및 REA MCP 프록시를 구현했습니다. loopback:4189에서만 수신합니다.
+- `node --test rea-bridge/oauth-gateway.test.cjs` 로컬 자동 테스트 통과: 미인증 401, 잘못된 PKCE 및 resource 거부, 코드 1회 사용, 리프레시 회전, 인증된 업스트림 요청 전달.
+- 아직 프로토타입으로 인가 서버/토큰 메모리 지속성 등 추가 보안 검증이 필수이므로 **공개 HTTPS 경로에 연결하지 않았습니다.** ChatGPT 앱에 등록하지 않았으며 기존 LocalWork OAuth, Funnel, Manager는 그대로 유지했습니다.
