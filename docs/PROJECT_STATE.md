@@ -249,3 +249,11 @@ timeoutMs
 - 실행 중인 어셈블리의 `AssemblyInformationalVersion`을 읽어 창 제목, 상단 설명, 시작 로그에 표시합니다. 파일 버전과 소스의 버전이 다를 경우 실행 중인 바이너리 버전이 표시됩니다.
 - Release 빌드 성공(경고/오류 0), 실행 중인 Release Manager 교체 및 재실행을 확인했습니다.
 - 이후 기능 변경에 따라 `.csproj`의 `Version`을 갱신합니다.
+
+### REA 연동 준비 (2026-10-16)
+
+- Codex에 REA 6.5.0 MCP 등록을 완료하고 Ghidra/JDK 경로를 Codex MCP 설정에 영구 반영했습니다.
+- 독립 실행 도구는 `F:\Dev\PortableTool\REA` 폴더에 공식 Ghidra 12.1.4 및 Temurin JDK 25.0.4.1을 압축 해제했습니다. 전역 `JAVA_HOME`은 변경하지 않았습니다.
+- Windows 환경의 REA `doctor`: Ghidra 12.1.4, JDK, native Windows control 모두 정상 확인.
+- `CPS1NativeRecompiler/build/native/sample.exe` 대상으로 `rea inspect --provider ghidra` 검증 성공: 함수 570개, 문자열 286개, 메모리 세그먼트 8개. 분석은 읽기 전용입니다.
+- ChatGPT에서 직접 사용하는 독립 HTTPS MCP 연결은 아직 등록 전입니다. 기존 Codex MCP 등록과 분리해 HTTP 브리지의 접근제어 및 원격 경로 매핑을 검증해야 합니다.
