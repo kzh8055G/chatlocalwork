@@ -242,3 +242,10 @@ timeoutMs
 - Manager는 로컬 전용 approvals 폴더의 요청을 표시하고 결정을 기록합니다. 승인 시간 초과 시 자동 거부합니다.
 - 검증: Windows Manager `dotnet build --no-restore` 성공(경고 0, 오류 0), Node 승인 정책 테스트 4개 통과.
 - 실제 사용자 승인 팝업을 통한 종단간 UI 검증은 Runner와 Manager 재시작 후 필요합니다.
+
+### Manager 버전 표기 (2026-10-16)
+
+- Manager의 최초 명시 버전을 `0.1.0`으로 지정했습니다. `.csproj`의 `Version`, `AssemblyVersion`, `FileVersion`을 단일 기준으로 사용합니다.
+- 실행 중인 어셈블리의 `AssemblyInformationalVersion`을 읽어 창 제목, 상단 설명, 시작 로그에 표시합니다. 파일 버전과 소스의 버전이 다를 경우 실행 중인 바이너리 버전이 표시됩니다.
+- Release 빌드 성공(경고/오류 0), 실행 중인 Release Manager 교체 및 재실행을 확인했습니다.
+- 이후 기능 변경에 따라 `.csproj`의 `Version`을 갱신합니다.

@@ -104,7 +104,7 @@ internal sealed class MainForm : Form
         var settings = ManagerSettingsStore.Load(_paths.ManagerSettingsFile);
         _stopMcpOnExitCheckBox.Checked = settings.StopMcpOnExit;
 
-        Text = "ChatLocalWork Manager";
+        Text = $"ChatLocalWork Manager v{ManagerBuildInfo.Version}";
         StartPosition = FormStartPosition.CenterScreen;
         MinimumSize = new Size(780, 640);
         Size = new Size(980, 720);
@@ -131,6 +131,7 @@ internal sealed class MainForm : Form
 
         Shown += async (_, _) =>
         {
+            AppendManagerLog($"Manager version : {ManagerBuildInfo.Version}");
             AppendManagerLog($"App root  : {_paths.AppRoot}");
             AppendManagerLog($"Workspace : {_paths.WorkspaceRoot}");
             AppendManagerLog($"Layout    : {(_paths.InstalledLayout ? "installed" : "development")}");
@@ -196,7 +197,7 @@ internal sealed class MainForm : Form
 
         var subtitle = new Label
         {
-            Text = "Windows Runner · Docker · Tailscale · MCP 상태 및 실행 관리",
+            Text = $"v{ManagerBuildInfo.Version} · Windows Runner · Docker · Tailscale · MCP",
             AutoSize = true,
             ForeColor = SystemColors.GrayText,
             Location = new Point(2, 40),
