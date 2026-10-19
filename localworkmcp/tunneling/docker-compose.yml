@@ -29,6 +29,10 @@ services:
       - type: bind
         source: "${WINDOWS_RUNNER_HOST_DIR:?Set WINDOWS_RUNNER_HOST_DIR}"
         target: "${WINDOWS_RUNNER_CONTAINER_DIR:-/chatlocalwork-runtime/windows-runner}"
+      - type: bind
+        source: "${CHATLOCALWORK_CONFIG_HOST_DIR:?Set CHATLOCALWORK_CONFIG_HOST_DIR}"
+        target: /chatlocalwork-config
+        read_only: true
       - type: volume
         source: cokacremote-state
         target: /var/lib/cokacremote

@@ -13,8 +13,10 @@ ChatGPT에는 LocalWork 앱 하나만 등록하고, 내부 MCP 서버를 Manager
 ## Registry 및 UI
 
 - Windows Manager → **MCP 서버 관리...**
-- Windows Workspace 경로: `<workspaceRoot>/.chatlocalwork/mcp-servers.json`
-- Docker 경로: `/shared/.chatlocalwork/mcp-servers.json`
+- Windows Workspace 경로: `%LOCALAPPDATA%\ChatLocalWork\config\mcp-servers.json`
+- Docker 경로: `/chatlocalwork-config/mcp-servers.json`
+- 기존 Workspace의 `.chatlocalwork/mcp-servers.json`은 StartMCP가 새 설정이 없는 경우에 한하여 이전합니다. 정상 검증 뒤 기존 폴더를 정리할 수 있습니다.
+- Docker는 호스트 `config` 폴더만 별도 **읽기 전용 마운트**합니다.
 - 서버 최대 32개, ID는 고유한 소문자/숫자/`_`/`-`를 사용합니다.
 - 서버 등록은 사용자가 `허용 도구`를 명시적으로 설정한 경우에만 `mcp_call_tool`로 연결됩니다.
 

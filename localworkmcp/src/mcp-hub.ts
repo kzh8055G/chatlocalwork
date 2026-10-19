@@ -9,7 +9,7 @@ import type { AppConfig } from './config.js';
 import { TOOL_ANNOTATIONS, toolAuthMetadata } from './tool-metadata.js';
 
 export interface HubServer { id: string; name: string; enabled: boolean; transport: 'streamableHttp' | 'windowsRea'; url?: string; allowedTools?: string[]; }
-export const registryFile = process.env.MCP_HUB_REGISTRY_FILE || '/shared/.chatlocalwork/mcp-servers.json';
+export const registryFile = process.env.MCP_HUB_REGISTRY_FILE || '/chatlocalwork-config/mcp-servers.json';
 const idPattern = /^[a-z][a-z0-9_-]{0,47}$/;
 export async function loadHubRegistry(file = registryFile): Promise<HubServer[]> {
   let raw: string;

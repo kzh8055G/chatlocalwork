@@ -26,9 +26,9 @@ internal sealed class McpHubForm : Form
     private readonly CheckBox _enabled=new() {Text="활성화",AutoSize=true};
     private Registry _registry=new();
     private static readonly JsonSerializerOptions JsonOptions=new(){WriteIndented=true,DefaultIgnoreCondition=JsonIgnoreCondition.WhenWritingNull};
-    public McpHubForm(string workspaceRoot)
+    public McpHubForm(string dataRoot)
     {
-        _file=Path.Combine(workspaceRoot,".chatlocalwork","mcp-servers.json");
+        _file=Path.Combine(dataRoot,"config","mcp-servers.json");
         Text="MCP 서버 관리"; StartPosition=FormStartPosition.CenterParent;
         MinimumSize=new Size(750,520);Size=new Size(860,600);AutoScaleMode=AutoScaleMode.Dpi;
         var root=new TableLayoutPanel {Dock=DockStyle.Fill,Padding=new Padding(14),ColumnCount=2,RowCount=2};

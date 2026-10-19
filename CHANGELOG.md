@@ -8,6 +8,10 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 
 아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
 
+### Changed
+- MCP Hub Registry를 Workspace의 숨김 폴더에서 `%LOCALAPPDATA%\ChatLocalWork\config`로 이전하고 Docker 전용 읽기 전용 마운트 구성.
+- REA 검증용 진단 자료를 Workspace 외부 런타임 진단 폴더로 정리.
+
 ### 문서
 - 변경 이력 파일 작성, 버전 갱신·검증 규칙 정의.
 

@@ -562,6 +562,18 @@ async function main() {
     if (!fs.existsSync(file)) throw new Error(`Required file not found: ${file}`);
   }
 
+  // One-time migration from workspace-scoped MCP registry to host-only config.
+  const configDir = path.join(localAppData, "ChatLocalWork", "config");
+  const legacyRegistry = path.join(workspaceRoot, ".chatlocalwork", "mcp-servers.json");
+  const hostRegistry = path.join(configDir, "mcp-servers.json");
+  fs.mkdirSync(configDir, { recursive: true });
+  if (!fs.existsSync(hostRegistry) && fs.existsSync(legacyRegistry)) {
+    const raw = fs.readFileSync(legacyRegistry, "utf8");
+    const parsed = JSON.parse(raw);
+    if (parsed?.version !== 1 || !Array.isArray(parsed.servers)) throw new Error("Legacy MCP registry is invalid");
+    fs.writeFileSync(hostRegistry, raw, { flag: "wx" });
+    console.log("MCP registry migrated: " + hostRegistry);
+  }
   const env = readEnv(envFile);
   const publicUrl = String(env.MCP_PUBLIC_URL || "").replace(/\/$/, "");
   if (!publicUrl) throw new Error("MCP_PUBLIC_URL is missing.");
@@ -609,6 +621,7 @@ async function main() {
       MCP_HOST_PORT: String(gatewayPort),
       SHARED_PATH: workspaceRoot,
       WINDOWS_RUNNER_HOST_DIR: runnerQueueDir,
+      CHATLOCALWORK_CONFIG_HOST_DIR: path.join(path.dirname(path.dirname(runnerQueueDir)), "config"),
       WINDOWS_RUNNER_CONTAINER_DIR: runnerContainerQueueDir,
     },
   });
