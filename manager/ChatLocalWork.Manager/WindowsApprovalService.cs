@@ -11,6 +11,8 @@ internal sealed class ApprovalDialog : Form
     {
         Text = "Windows 명령 실행 승인";
         StartPosition = FormStartPosition.CenterParent;
+        TopMost = true;
+        ShowInTaskbar = true;
         MinimumSize = new Size(650, 420);
         Size = new Size(760, 490);
         AutoScaleMode = AutoScaleMode.Dpi;
@@ -43,6 +45,7 @@ internal sealed class ApprovalDialog : Form
         AddButton("이 실행 파일을 whitelist에 추가 (동일 SHA-256에만 적용)", "trust", 4);
         AddButton("거부", "deny", 5);
         Controls.Add(layout);
+        Shown += (_, _) => { Activate(); BringToFront(); };
 
         void AddButton(string caption, string choice, int row)
         {

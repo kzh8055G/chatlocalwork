@@ -8,7 +8,12 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 
 아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
 
+### Fixed
+- Manager의 Windows 명령 실행 승인 창을 최상위 창·작업 표시줄에 표시하고 열릴 때 활성화하여 승인 대화상자가 뒤로 숨는 문제를 방지.
+
 ### Changed
+- Windows Runner 기본 실행 파일 허용 목록에 `mame.exe` 추가. 해당 실행 파일을 별도 승인 없이 실행할 수 있으므로 보안상 변경으로 취급.
+
 - MCP Hub Registry를 Workspace의 숨김 폴더에서 `%LOCALAPPDATA%\ChatLocalWork\config`로 이전하고 Docker 전용 읽기 전용 마운트 구성.
 - REA 검증용 진단 자료를 Workspace 외부 런타임 진단 폴더로 정리.
 
