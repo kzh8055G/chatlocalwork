@@ -276,3 +276,12 @@ timeoutMs
 - `rea-bridge/oauth-gateway.cjs`에 별도 OAuth2 PKCE 승인/클라이언트 등록/액세스 토큰·리프레시 토큰/보호 리소스 메타데이터 및 REA MCP 프록시를 구현했습니다. loopback:4189에서만 수신합니다.
 - `node --test rea-bridge/oauth-gateway.test.cjs` 로컬 자동 테스트 통과: 미인증 401, 잘못된 PKCE 및 resource 거부, 코드 1회 사용, 리프레시 회전, 인증된 업스트림 요청 전달.
 - 아직 프로토타입으로 인가 서버/토큰 메모리 지속성 등 추가 보안 검증이 필수이므로 **공개 HTTPS 경로에 연결하지 않았습니다.** ChatGPT 앱에 등록하지 않았으며 기존 LocalWork OAuth, Funnel, Manager는 그대로 유지했습니다.
+
+### LocalWork 범용 MCP Hub v0.2.0 (2026-10-19)
+
+- `docs/MCP_HUB.md`에 아키텍처와 사용 방법 기록.
+- `/shared/.chatlocalwork/mcp-servers.json`에서 MCP Registry 관리. 서버 조회·도구 조회·도구 호출 3개를 고정 MCP 도구로 제공. HTTP Streamable 및 Windows REA 큐 전용 전송 방식 제공.
+- Manager에 MCP 서버 관리 화면 및 REA 등록 템플릿 추가, 실행 어셈블리 버전 0.2.0.
+- Windows Runner가 REA stdio MCP 프로세스를 유지하며, Docker↔Windows 큐로 21개 지정 도구 호출. 바이너리 선택은 Workspace 내부 실파일로 제한.
+- 검증: HTTP 모의 MCP 중계 테스트, Registry 유효성 검사, Windows 격리 큐 스모크 테스트 및 Docker LocalWork→Windows Runner→REA 6.5.0→Ghidra 12.1.4→sample.exe 실제 함수 목록 조회 성공.
+- 미구현: 범용 Windows stdio 서버 자동 가져오기, 일반 HTTP MCP 상태 유지, REA 위험 도구 개별 승인, 설치/업데이트 자동화.

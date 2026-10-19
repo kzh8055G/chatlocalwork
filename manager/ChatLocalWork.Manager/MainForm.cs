@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace ChatLocalWork.Manager;
 
@@ -28,6 +28,7 @@ internal sealed class MainForm : Form
     private readonly Button _startButton = new() { Text = "Start MCP", AutoSize = true };
     private readonly Button _stopButton = new() { Text = "Stop MCP", AutoSize = true };
     private readonly Button _refreshButton = new() { Text = "상태 새로 고침", AutoSize = true };
+    private readonly Button _mcpHubButton = new() { Text = "MCP 서버 관리...", AutoSize = true };
     private readonly Button _environmentSettingsButton = new() { Text = "환경 설정...", AutoSize = true };
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
     private readonly Button _openRepositoryButton = new() { Text = "앱 폴더", AutoSize = true };
@@ -116,6 +117,7 @@ internal sealed class MainForm : Form
         _startButton.Click += async (_, _) => await RunLifecycleAsync(start: true);
         _stopButton.Click += async (_, _) => await RunLifecycleAsync(start: false);
         _refreshButton.Click += async (_, _) => await RefreshStatusAsync();
+        _mcpHubButton.Click += (_, _) => { using var form = new McpHubForm(_paths.WorkspaceRoot); form.ShowDialog(this); };
         _environmentSettingsButton.Click += async (_, _) => await OpenEnvironmentSettingsAsync();
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();
@@ -238,6 +240,7 @@ internal sealed class MainForm : Form
                      _stopButton,
                      _refreshButton,
                      _environmentSettingsButton,
+                     _mcpHubButton,
                      _loadLogButton,
                      _openRepositoryButton,
                      _clearLogButton,

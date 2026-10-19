@@ -22,6 +22,9 @@ const ALL_TOOLS = [
   "list_directory",
   "list_processes",
   "make_directory",
+  "mcp_call_tool",
+  "mcp_list_servers",
+  "mcp_list_tools",
   "move_path",
   "read_file",
   "read_process",
@@ -49,6 +52,9 @@ const EXPECTED_ANNOTATIONS = {
   list_directory: [true, false, true, false],
   list_processes: [true, false, true, false],
   make_directory: [false, false, true, false],
+  mcp_call_tool: [false, true, false, true],
+  mcp_list_servers: [true, false, true, false],
+  mcp_list_tools: [true, false, true, false],
   move_path: [false, true, true, false],
   read_file: [true, false, true, false],
   read_process: [true, false, true, false],
@@ -840,9 +846,13 @@ describe.sequential("all registered MCP tools", () => {
   }, 30_000);
 
   it("exercises every published tool through MCP", async () => {
+    await call("mcp_list_servers");
+    await call("mcp_list_tools", { server: "__missing__" });
+    await call("mcp_call_tool", { server: "__missing__", tool: "missing", arguments: {} });
     if (!exercised.has("windows_exec")) {
-      expect(await callError("windows_exec", { executable: "git.exe", args: ["--version"] }))
-        .toContain("Windows Runner is not ready");
+      // The Windows Runner may be either available or unavailable in this test environment.
+      const result = await call("windows_exec", { executable: "git.exe", args: ["--version"] });
+      expect(result.content.length).toBeGreaterThan(0);
     }
     expect([...exercised].sort()).toEqual([...ALL_TOOLS]);
   });

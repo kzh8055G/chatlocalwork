@@ -3,6 +3,7 @@ const path = require("path");
 const { spawn, spawnSync } = require("child_process");
 const policy = require("./approval-policy.cjs");
 const { awaitApproval } = require("./approval-gate.cjs");
+const reaHub = require("./rea-hub.cjs");
 
 function parseArgs(argv) {
   const out = {};
@@ -280,11 +281,26 @@ async function processOne() {
       }
 
       const id = String(request.id || path.basename(name, ".json"));
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+        log('REJECT invalid queue request ID');
+        try { fs.unlinkSync(requestFile); } catch {}
+        continue;
+      }
       const responseFile = path.join(responsesDir, id + ".json");
       if (fs.existsSync(responseFile)) continue;
 
       const startedAt = new Date().toISOString();
       try {
+        if (request.kind === 'mcpHub') {
+          activeRequest = { id, executable: 'REA MCP', args: [], workdir: workspaceRoot, startedAt, timeoutMs: 120000 };
+          writeReadyState();
+          const result = await reaHub.handle(request, { workspaceRoot });
+          writeJsonAtomic(responseFile, { id, ok: true, result, startedAt, completedAt: new Date().toISOString() });
+          log('MCP HUB DONE ' + id + ': ' + String(request.operation || 'unknown'));
+          activeRequest = null;
+          writeReadyState();
+          break;
+        }
         const requestedExecutable = String(request.executable || "");
         const argv = Array.isArray(request.args) ? request.args.map(String) : [];
         const requestedWorkdir = String(request.workdir || "").trim();

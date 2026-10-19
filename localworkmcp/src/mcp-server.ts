@@ -1,3 +1,4 @@
+import { registerHubTools } from "./mcp-hub.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import type { AppConfig } from "./config.js";
@@ -50,5 +51,6 @@ export function createMcpServer(config: AppConfig, services: McpServices): McpSe
   );
   registerFileTools(server, config, services.fileService);
   registerWindowsRunnerTools(server, config);
+  registerHubTools(server, config);
   return server;
 }
