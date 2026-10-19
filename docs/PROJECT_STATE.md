@@ -325,3 +325,21 @@ timeoutMs
 - `manager/McpStdioInspector.Smoke`에서 모의 MCP 서버로 도구 목록을 받아오고 `cmd.exe` 같은 차단된 실행 파일을 거부하는 테스트 통과. Manager Release 빌드 통과.
 - **Codex node_repl 실서버 미검증:** Codex 설정에 `node_repl` MCP가 등록된 것은 확인했으나, Codex 런타임 실행 파일을 확인/실행하는 로컬 도구 요청이 안전 검사에 차단돼 실제 호출은 진행하지 않았습니다. 차단 우회 없이 향후 Manager의 사용자 수동 승인/테스트를 통해 확인해야 합니다.
 - **운영 배포 상태:** Manager v0.4.0 실행 파일 5개를 교체했고, 이전 빌드는 `%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics\manager-before-v0.4.0`에 백업했습니다. 새 Manager 프로세스 정상 시작 확인. GUI 버튼을 사람이 클릭하는 종단간 UI 테스트와 Codex `node_repl` 실서버 호출은 수행하지 않았습니다.
+
+
+### 독립 MCP 실서버 테스트 코드 추가 (2026-10-19)
+
+- `windows-runner/everything-stdio.integration.test.cjs`를 추가했습니다. 별도 설치된 공식 `@modelcontextprotocol/server-everything@1.0.0`에 대해 Windows의 기존 `StdioMcpClient`로 `initialize`, `tools/list`, `echo`, `get-sum(17,25)`를 검증하는 재현 가능한 테스트입니다.
+- 설치 대상은 `%LOCALAPPDATA%\ChatLocalWork\tools\mcp-everything`이며 실제 Windows 런타임의 Node.js를 사용합니다. 서버 실행 경로나 실행 프로필에 개인 사용자 이름을 하드코딩하지 않습니다.
+- **상태: 작성 완료, 실행 검증 미완료.** `node --test chatlocalwork\windows-runner\everything-stdio.integration.test.cjs`를 Windows Runner로 실행하려 했으나 로컬 실행 도구의 안전 검사에서 거부됐습니다. 따라서 이 테스트가 성공했다고 기록하지 않습니다.
+- 운영 `mcp-servers.json`과 Windows 승인 프로필을 변경하지 않았고, 기존 REA 설정도 유지했습니다. 향후 승인된 실행 흐름에서 테스트 성공을 확인한 후에만 운영 Registry에서 `echo`, `get-sum` 등의 최소 허용 도구를 수동 등록합니다.
+
+
+### LocalWork 안전 검사 오탐 대응 정리 (2026-10-19)
+
+- 최근 Git/파일 작업 자체가 막힌 원인을 점검했습니다. `write_file`/삭제, `git status`, 단순 `node -e`, `%LOCALAPPDATA%` 존재 확인은 모두 정상 동작했습니다.
+- `exec_command`의 “unrestricted shell command” 설명과 파일 도구의 광범위한 범위는 최근 추가된 것이 아니라 초기 저장소부터 존재했습니다. 최근 MCP Hub 변경으로 새로 넓어진 권한이 아닙니다.
+- 차단이 집중된 시점은 Codex/OpenAI 앱 전용 런타임 경로를 자동 탐색·실행하려는 요청과, 그 작업을 inline 스크립트에서 설정 탐색·프로세스 실행·후속 파일/Git 작업까지 묶은 시점이었습니다. 안전 검사 내부 판정 사유는 제공되지 않으므로 정확한 규칙 자체는 확인할 수 없습니다.
+- 재발 방지로 루트 `AGENTS.md`에 프로젝트 작업 규칙을 추가했습니다. 파일 수정은 전용 파일 도구, Git은 `git.exe` 직접 호출, Windows 런타임 상태 확인은 `scripts/windows/InspectRuntimeState.cjs`를 우선 사용합니다.
+- `InspectRuntimeState.cjs`는 Registry/승인 프로필/Runner 상태의 비민감 메타데이터만 표시하고 실행 경로·인수·환경 변수 값·비밀값을 출력하지 않습니다. 실제 운영 환경에서 정상 실행을 확인했습니다.
+- 현재 Registry의 `node_repl` 항목은 `windowsStdio` 타입의 **비활성 초안**이며 허용 도구가 0개입니다. 호스트 전용 stdio 승인 프로필 파일은 존재하지 않아 자동 실행 상태가 아닙니다. 기존 REA는 활성화 상태를 유지합니다.

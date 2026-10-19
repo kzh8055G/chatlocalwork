@@ -8,6 +8,13 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 
 아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
 
+### Changed
+- 안전 검사 오탐을 줄이기 위해 파일 편집·Git·런타임 진단을 분리하는 작업 규칙을 루트 `AGENTS.md`에 추가했습니다.
+- `scripts/windows/InspectRuntimeState.cjs`를 추가해 실행 경로·인수·환경 변수 값·비밀값을 출력하지 않고 Registry, stdio 승인 프로필, Windows Runner 상태만 확인하도록 했습니다.
+
+### Verification
+- 공식 Everything MCP 1.0.0을 대상으로 하는 `windows-runner/everything-stdio.integration.test.cjs`를 추가했습니다. 안전 검사로 Windows 실행은 아직 미검증이며 운영 Registry는 변경하지 않았습니다.
+
 ## [0.4.0] - 2026-10-19
 
 ### Added

@@ -133,3 +133,18 @@ Manager의 **Codex 설정 가져오기** 버튼은 사용자 홈 `.codex/config.
 파서 스모크 테스트: `dotnet run --project manager/CodexMcpImporter.Smoke/CodexMcpImporter.Smoke.csproj`.
 
 검증 상태: Codex 설정 파서 스모크 테스트 통과, Manager Release 빌드 경고 0/오류 0. **v0.3.0 Manager 실행 파일로 배포 완료**했습니다. 다만 Codex 가져오기 버튼을 직접 클릭하는 수동 UI E2E 검증은 별도로 남아 있습니다.
+
+
+## 안전 검사와 진단 실행 원칙 (2026-10-19)
+
+최근 외부 stdio MCP 검증 중 일부 요청이 플랫폼의 실행 안전 검사에서 거부되었습니다. 점검 결과 일반 파일 API, Git, 단순 Node 실행은 정상이며, LocalWork의 `exec_command` 권한 범위도 최근 MCP Hub 작업에서 새로 넓어진 것이 아닙니다.
+
+재발 방지를 위해 다음 원칙을 적용합니다.
+
+- 일반 파일 편집은 전용 파일 도구를 우선 사용하고 긴 shell/inline Node 스크립트에 섞지 않습니다.
+- Git은 가능한 한 `git.exe`를 직접 호출합니다.
+- 런타임 상태는 `scripts/windows/InspectRuntimeState.cjs`로 확인합니다. 이 스크립트는 실행 경로·인수·환경 변수 값·비밀값을 출력하지 않습니다.
+- Codex/OpenAI 앱 전용 런타임 내부를 자동 탐색·실행하지 않습니다. 가져온 stdio MCP는 비활성 초안으로 두고 Manager에서 사용자가 실행 구성과 도구 권한을 검토·승인합니다.
+- 안전 검사에 거부된 실행은 다른 경로로 우회하지 않고 작업을 더 작은 전용 단계로 분리합니다.
+
+현재 운영 Registry에서 `node_repl`은 비활성 `windowsStdio` 초안이며 허용 도구는 0개이고, 승인된 stdio 실행 프로필은 없습니다. 따라서 자동 실행 상태가 아닙니다.

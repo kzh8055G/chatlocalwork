@@ -62,3 +62,29 @@ Stop 흐름
 
 sc.exe의 한국어 OEM 출력은 사용자에게 그대로 표시하지 않습니다.
 대신 스크립트가 영문 상태 메시지만 출력합니다.
+
+런타임 진단
+-----------
+
+`InspectRuntimeState.cjs`는 LocalWork 런타임 상태를 **비밀값 없이** 확인하기 위한 진단 스크립트입니다.
+
+확인 항목:
+
+- MCP Registry의 서버 ID / 전송 방식 / 활성화 여부 / 허용 도구 수
+- Windows stdio 승인 프로필의 서버 ID / 승인 여부 / 허용 도구 수
+- Windows Runner의 PID / busy / heartbeat 경과 시간
+
+의도적으로 출력하지 않는 항목:
+
+- MCP 실행 파일 경로와 인수
+- 환경 변수 값
+- API 키, 토큰, OAuth 정보
+- Codex/OpenAI 앱 전용 런타임 내부 정보
+
+예시:
+
+```powershell
+node scripts\windows\InspectRuntimeState.cjs
+```
+
+일반 진단에서는 긴 `node -e` inline 스크립트 대신 이 파일을 우선 사용합니다.
