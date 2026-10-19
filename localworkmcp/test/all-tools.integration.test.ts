@@ -852,7 +852,7 @@ describe.sequential("all registered MCP tools", () => {
     if (!exercised.has("windows_exec")) {
       // The Windows Runner may be either available or unavailable in this test environment.
       const result = await call("windows_exec", { executable: "git.exe", args: ["--version"] });
-      expect(result.content.length).toBeGreaterThan(0);
+      expect(Array.isArray(result.content) ? result.content.length : 0).toBeGreaterThan(0);
     }
     expect([...exercised].sort()).toEqual([...ALL_TOOLS]);
   });
