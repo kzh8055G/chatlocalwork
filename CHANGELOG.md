@@ -8,6 +8,21 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 
 아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
 
+## [0.3.0] - 2026-10-19
+
+### Added
+- **범용 Windows stdio MCP**: 서버별 Windows 프로세스 재사용, 허용 도구 조회·호출, Windows Runner 큐 중계.
+- Manager에 실행 파일·인수·작업 폴더·환경 변수 이름·허용 도구 편집과 **실행 승인 다이얼로그** 추가. 비밀값을 Docker Registry와 분리한 Windows 호스트 전용 프로필 저장소 도입.
+- Codex에서 가져온 일반 stdio MCP 항목을 자동 실행하지 않는 **비활성 초안**으로 등록.
+
+### Security
+- 도구 호출마다 Registry와 호스트 프로필의 독립 허용 목록, 승인 여부, Workspace 작업 폴더 및 차단 실행 파일 검증.
+- 서버 비활성화·프로필 변경 시 기존 프로세스 자동 종료 및 재승인 정책.
+
+### Verified
+- Windows 모의 MCP 직접 테스트, Windows Runner 큐 통합 테스트, 기존 REA/Ghidra 바이너리 실검증 통과. Manager Release 빌드와 LocalWork TypeScript 검사 통과.
+
+
 ### Added
 - Manager의 `Codex 설정 가져오기`: `~/.codex/config.toml`에서 REA 및 로컬 HTTP MCP를 찾아 비활성 Registry 항목으로 가져오는 초기 버전. 비밀 환경 변수와 미승인 stdio 실행 명령은 가져오지 않음. 소스·파서 스모크 테스트·Release 빌드 완료, 실행 중인 Manager 신규 UI 배포는 미확인.
 

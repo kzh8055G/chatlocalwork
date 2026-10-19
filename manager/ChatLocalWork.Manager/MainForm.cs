@@ -117,7 +117,7 @@ internal sealed class MainForm : Form
         _startButton.Click += async (_, _) => await RunLifecycleAsync(start: true);
         _stopButton.Click += async (_, _) => await RunLifecycleAsync(start: false);
         _refreshButton.Click += async (_, _) => await RefreshStatusAsync();
-        _mcpHubButton.Click += (_, _) => { using var form = new McpHubForm(_paths.ChatLocalWorkDataDirectory); form.ShowDialog(this); };
+        _mcpHubButton.Click += (_, _) => { using var form = new McpHubForm(_paths.ChatLocalWorkDataDirectory, _paths.WorkspaceRoot); form.ShowDialog(this); };
         _environmentSettingsButton.Click += async (_, _) => await OpenEnvironmentSettingsAsync();
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();

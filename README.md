@@ -221,7 +221,8 @@ scripts\windows\StopMCP.bat
 - Docker: 호스트 설정 폴더를 `/chatlocalwork-config`에 읽기 전용 마운트
 - REA: Windows Runner를 통해 연결, 현재 21개 지정 도구만 허용
 - Codex 가져오기: **소스 구현 및 Manager Release 빌드·파서 스모크 테스트 완료**. 실제 실행 중인 Manager에 신규 UI를 배포했는지는 별도로 확인 필요
-- 일반 Windows stdio MCP 임의 실행, 복잡한 TOML 전체 규격, OAuth가 필요한 외부 HTTP MCP는 현재 미지원
+- Windows stdio MCP는 Manager에서 서버별 `.exe` 실행 설정과 허용 도구를 직접 승인한 경우 지원. Codex 설정의 자동 실행·환경 비밀값 가져오기는 미지원
+- 복잡한 TOML 전체 규격, OAuth가 필요한 외부 HTTP MCP는 현재 미지원
 
 ## 저장소
 

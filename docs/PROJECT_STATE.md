@@ -306,3 +306,13 @@ timeoutMs
 - `docs/MCP_HUB.md`: MCP Registry 규격, 도구 동작, Windows REA/Codex 가져오기 절차와 권한 정책.
 - `CHANGELOG.md`: 최신 기능 변경을 `Unreleased`에 추가하고, 릴리스 시 버전별 항목으로 이동.
 - 기능 작업 커밋 전후로 위 문서들의 표현과 실제 코드의 일치 여부를 확인합니다. Git 커밋 본문은 한글·영문 병기합니다.
+
+
+### 범용 Windows stdio MCP Hub v0.3.0 (2026-10-19)
+
+- `localworkmcp/src/mcp-hub.ts`에 `windowsStdio` 전송 방식을 추가했습니다. ChatGPT 노출 도구 이름/인자(`mcp_list_servers`, `mcp_list_tools`, `mcp_call_tool`)는 변경하지 않았습니다.
+- `windows-runner/stdio-mcp-client.cjs`가 stdio 서버별 연결·요청·세션 수명주기를 관리하고, `stdio-hub.cjs`가 승인된 서버 프로필과 도구 호출을 중계합니다. 기존 REA 브리지는 공통 클라이언트를 사용하도록 변경했으며 읽기 제한 정책을 유지했습니다.
+- Manager의 MCP 관리 화면에 **Windows stdio MCP** 유형, 실행 파일·인수·Workspace 폴더·환경 변수 이름·도구 목록, 명시적인 실행 승인 절차를 추가했습니다. 실행 설정은 Docker 공유 폴더 외부의 `%LOCALAPPDATA%\ChatLocalWork\private\mcp-stdio-profiles.json`에 저장합니다.
+- Codex에서 일반 stdio MCP를 가져오면 이름·ID만 비활성 초안으로 등록합니다. 임의 명령·인수·비밀 환경 변수는 자동 가져오지 않습니다. 실행 시 사용자가 별도로 명령을 구성하고 승인해야 합니다.
+- Windows 단위 테스트와 Windows Runner 큐 통합 테스트에서 허용 도구 조회·호출 성공, 차단 도구·미승인 프로필·비활성 서버·Workspace 밖 경로·차단된 exe 거부를 검증했습니다. 기존 REA → Ghidra 12.1.4에서 `sample.exe` 열기·함수 목록 회귀 테스트 통과, Manager Release 빌드 및 TypeScript 검사 통과.
+- **후속:** VS Code MCP 설정 가져오기, 정교한 실행 인수/환경 변수 편집, MCP 서버별 감사 로그, HTTP MCP 상태 유지/원격 인증, 더 세밀한 위험 도구 승인 정책. 현재 설정은 서버 프로세스에 Windows 실행 권한을 부여하므로 신뢰한 서버에만 사용해야 합니다.

@@ -4,6 +4,7 @@ const { spawn, spawnSync } = require("child_process");
 const policy = require("./approval-policy.cjs");
 const { awaitApproval } = require("./approval-gate.cjs");
 const reaHub = require("./rea-hub.cjs");
+const stdioHub = require("./stdio-hub.cjs");
 
 function parseArgs(argv) {
   const out = {};
@@ -292,9 +293,9 @@ async function processOne() {
       const startedAt = new Date().toISOString();
       try {
         if (request.kind === 'mcpHub') {
-          activeRequest = { id, executable: 'REA MCP', args: [], workdir: workspaceRoot, startedAt, timeoutMs: 120000 };
+          activeRequest = { id, executable: 'Windows MCP', args: [], workdir: workspaceRoot, startedAt, timeoutMs: 120000 };
           writeReadyState();
-          const result = await reaHub.handle(request, { workspaceRoot });
+          const result = await (request.server === 'rea' ? reaHub : stdioHub).handle(request, { workspaceRoot });
           writeJsonAtomic(responseFile, { id, ok: true, result, startedAt, completedAt: new Date().toISOString() });
           log('MCP HUB DONE ' + id + ': ' + String(request.operation || 'unknown'));
           activeRequest = null;

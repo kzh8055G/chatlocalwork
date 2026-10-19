@@ -8,7 +8,7 @@ import * as z from 'zod/v4';
 import type { AppConfig } from './config.js';
 import { TOOL_ANNOTATIONS, toolAuthMetadata } from './tool-metadata.js';
 
-export interface HubServer { id: string; name: string; enabled: boolean; transport: 'streamableHttp' | 'windowsRea'; url?: string; allowedTools?: string[]; }
+export interface HubServer { id: string; name: string; enabled: boolean; transport: 'streamableHttp' | 'windowsRea' | 'windowsStdio'; url?: string; allowedTools?: string[]; }
 export const registryFile = process.env.MCP_HUB_REGISTRY_FILE || '/chatlocalwork-config/mcp-servers.json';
 const idPattern = /^[a-z][a-z0-9_-]{0,47}$/;
 export async function loadHubRegistry(file = registryFile): Promise<HubServer[]> {
@@ -22,8 +22,9 @@ export async function loadHubRegistry(file = registryFile): Promise<HubServer[]>
   const seen = new Set<string>();
   return obj.servers.map((v: unknown) => {
     const s = v as Partial<HubServer>;
-    if (!s || typeof s !== 'object' || !idPattern.test(s.id || '') || typeof s.name !== 'string' || s.name.length > 120 || typeof s.enabled !== 'boolean' || !['streamableHttp', 'windowsRea'].includes(s.transport || '') || (s.transport === 'streamableHttp' && typeof s.url !== 'string') || (s.allowedTools !== undefined && (!Array.isArray(s.allowedTools) || !s.allowedTools.every(x => typeof x === 'string')))) throw Error('Invalid MCP hub server entry');
+    if (!s || typeof s !== 'object' || !idPattern.test(s.id || '') || typeof s.name !== 'string' || s.name.length > 120 || typeof s.enabled !== 'boolean' || !['streamableHttp', 'windowsRea', 'windowsStdio'].includes(s.transport || '') || (s.transport === 'streamableHttp' && typeof s.url !== 'string') || (s.allowedTools !== undefined && (!Array.isArray(s.allowedTools) || !s.allowedTools.every(x => typeof x === 'string')))) throw Error('Invalid MCP hub server entry');
     if (s.transport === 'windowsRea') { if (s.id !== 'rea' || s.url !== undefined) throw Error('Windows REA transport requires id rea without URL'); }
+    else if (s.transport === 'windowsStdio') { if (s.url !== undefined) throw Error('Windows stdio transport does not accept URL'); }
     else {
     const u = new URL(s.url!);
     // Prevent arbitrary SSRF: only explicit local Docker-host / loopback services.
@@ -44,13 +45,13 @@ async function withClient<T>(entry: HubServer, action: (client: Client) => Promi
     return await action(client);
   } finally { clearTimeout(timeout); await client.close().catch(() => undefined); }
 }
-async function windowsReaRequest(operation: 'listTools' | 'callTool', tool?: string, args?: Record<string,unknown>): Promise<unknown> {
+async function windowsMcpRequest(operation: 'listTools' | 'callTool', server: string, tool?: string, args?: Record<string,unknown>): Promise<unknown> {
   const root = process.env.WINDOWS_RUNNER_QUEUE_DIR || '/chatlocalwork-runtime/windows-runner';
   const ready = JSON.parse(await readFile(path.join(root, 'state', 'ready.json'),'utf8')) as {ok?:boolean;heartbeatAt?:string};
   if (!ready.ok || Date.now()-Date.parse(ready.heartbeatAt || '')>10000) throw Error('Windows Runner not ready');
   const id=randomUUID(), reqDir=path.join(root,'requests'),resDir=path.join(root,'responses');
   await mkdir(reqDir,{recursive:true});
-  const payload={id,kind:'mcpHub',server:'rea',operation,tool,arguments:args||{}};
+  const payload={id,kind:'mcpHub',server,operation,tool,arguments:args||{}};
   const reqPath=path.join(reqDir,id+'.json'),tmpPath=reqPath+'.tmp',resPath=path.join(resDir,id+'.json');
   await writeFile(tmpPath,JSON.stringify(payload));await rename(tmpPath,reqPath);
   try {
@@ -73,7 +74,7 @@ export function registerHubTools(server: McpServer, config: AppConfig): void {
   server.registerTool('mcp_list_tools', { title: 'List MCP Hub Tools', description: 'Get tools and input schemas from an enabled MCP hub server.', inputSchema: { server: z.string().describe('Registered MCP server ID to inspect.') }, annotations: TOOL_ANNOTATIONS.readOnlyClosed, _meta: security }, async ({server: id}) => {
     const entry = (await loadHubRegistry()).find(s => s.id === id && s.enabled);
     if (!entry) throw Error('MCP hub server is not enabled or not found');
-    const result = entry.transport === 'windowsRea' ? await windowsReaRequest('listTools') as {tools: Array<{name:string}>} : await withClient(entry, client => client.listTools());
+    const result = (entry.transport === 'windowsRea' || entry.transport === 'windowsStdio') ? await windowsMcpRequest('listTools', entry.id) as {tools: Array<{name:string}>} : await withClient(entry, client => client.listTools());
     const tools = entry.allowedTools ? result.tools.filter(tool => entry.allowedTools!.includes(tool.name)) : result.tools;
     return { content: [{ type: 'text' as const, text: JSON.stringify(tools) }] };
   });
@@ -81,7 +82,7 @@ export function registerHubTools(server: McpServer, config: AppConfig): void {
     const entry = (await loadHubRegistry()).find(s => s.id === id && s.enabled);
     if (!entry) throw Error('MCP hub server is not enabled or not found');
     if (!entry.allowedTools || !entry.allowedTools.includes(tool)) throw Error('Tool is not approved by the MCP hub allowlist');
-    const result = entry.transport === 'windowsRea' ? await windowsReaRequest('callTool', tool, args || {}) as {isError?:boolean} : await withClient(entry, client => client.callTool({name: tool, arguments: args || {}}));
+    const result = (entry.transport === 'windowsRea' || entry.transport === 'windowsStdio') ? await windowsMcpRequest('callTool', entry.id, tool, args || {}) as {isError?:boolean} : await withClient(entry, client => client.callTool({name: tool, arguments: args || {}}));
     return { content: [{type:'text' as const,text:JSON.stringify(result)}], isError: result.isError === true };
   });
 }

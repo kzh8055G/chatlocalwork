@@ -1,4 +1,4 @@
-# ChatLocalWork MCP Hub (v0.2.0)
+# ChatLocalWork MCP Hub (v0.3.0)
 
 ## 목적
 
@@ -60,16 +60,45 @@ REA의 Ghidra 및 Node npm CLI 위치는 **Docker 공유 Registry가 아닌** Wi
 
 **REA 정책:** 현재 REA의 207개 MCP 도구 중 실제 Windows Runner에서 허용한 도구는 21개(기존 읽기 중심 20개와 `open_binary`)입니다. `open_binary`는 Workspace 내부 실파일에만 접근할 수 있고 `snapshot_path`는 차단합니다. 그 외 도구를 활성화하려면 별도의 승인 정책이 필요합니다. Manager에 다른 도구 이름을 적어도 Windows Runner의 독립 허용 목록을 통과하지 못합니다.
 
+## 범용 Windows stdio MCP (v0.3.0)
+
+이제 REA 외에 Windows에서 실행되는 **임의의 stdio MCP 서버**를 Manager의 **MCP 서버 관리...**에서 등록할 수 있습니다. 서버는 Docker가 아니라 Windows Runner에서 실행하고, 서버별 프로세스를 재사용합니다. 일반 MCP 서버를 자동 설치하거나 임의로 실행하지 않습니다.
+
+등록 순서:
+
+1. Manager에서 서버 유형 **Windows stdio MCP**를 선택합니다. Codex에서 가져온 항목은 서버 ID와 이름만 저장된 **비활성 초안**이므로 실행 구성을 별도로 입력해야 합니다.
+2. `실행 파일`에 존재하는 **Windows 절대 경로의 `.exe`**를 지정합니다. `cmd.exe`, PowerShell 등 차단된 쉘 실행기는 허용되지 않습니다. 패키지 CLI를 사용하는 경우 Node.exe 등을 지정하고 각 CLI 인수를 줄별로 입력합니다.
+3. `작업 폴더`는 Workspace 내부로 지정합니다. `인수 (줄별)`에는 인수 하나씩, `환경 변수 이름`에는 Windows Runner가 실행할 때 **이미 환경에 존재하는** 변수 이름만 입력합니다. 비밀값과 Codex `env` 값은 저장하거나 Docker Registry에 복사하지 않습니다.
+4. `허용 도구`에는 실제 MCP 도구 이름을 줄별로 입력합니다. 저장 버튼에서 **실행 파일·인수·작업 폴더·허용 도구를 확인하고 명시 승인**해야 Windows 호스트 전용 프로필이 승인됩니다.
+5. 활성화 후 `mcp_list_tools(server)`와 `mcp_call_tool(server, tool, arguments)`를 사용할 수 있습니다. 등록·승인은 곧 임의 도구 호출 허용을 뜻하지 않으며, 도구는 Registry와 Windows 호스트 프로필의 **양쪽 허용 목록**에 들어 있어야 합니다.
+
+공유 Registry에는 다음 항목만 보관합니다:
+
+```json
+{
+  "id": "my-server",
+  "name": "My Windows MCP",
+  "enabled": true,
+  "transport": "windowsStdio",
+  "allowedTools": ["ping"]
+}
+```
+
+실행 명령·인수·환경 변수 **이름**은 Docker에서 읽을 수 없는 Windows 호스트 전용 `%LOCALAPPDATA%\ChatLocalWork\private\mcp-stdio-profiles.json`에 분리해 저장합니다. Docker는 공유 Registry의 서버 ID만 큐로 보내며, Windows Runner가 호스트 프로필의 승인 여부와 두 허용 도구 목록을 다시 검사합니다. 서버를 비활성화하거나 실행 구성을 변경하면 새 호출은 거부되고, 이미 실행 중인 프로세스도 짧은 간격으로 정리됩니다.
+
+**보안 제약:** `.exe`를 통한 실행은 임의 Windows 코드를 실행할 수 있는 권한입니다. 신뢰할 수 있는 MCP 소스만 명시적으로 승인해야 합니다. 인수에 비밀번호·API 키를 직접 넣지 마세요. Windows Runner의 환경 변수를 사용할 경우 Runner 재시작이 필요할 수 있습니다. 자동 패키지 설치·원격 OAuth·위험 도구 세부 권한 프롬프트는 별도 작업입니다.
+
 ## 검증
 
-- Windows: `node rea-bridge/test-windows-queue.cjs`
+- Windows: `node --test windows-runner/stdio-hub.test.cjs windows-runner/stdio-runner.integration.test.cjs`
+- Windows: `node rea-bridge/test-windows-queue.cjs` (공통 stdio 클라이언트로 변경된 REA 회귀 검증)
 - Windows: `npm exec --prefix localworkmcp -- vitest run test/mcp-hub.test.ts test/mcp-hub.integration.test.ts`
 - Windows Manager: `dotnet build manager/ChatLocalWork.Manager/ChatLocalWork.Manager.csproj -c Release`
 - 실제 Docker→Windows Runner→REA→Ghidra 통합 검증: `CPS1NativeRecompiler/build/native/sample.exe`를 `open_binary`로 열고 `list_documents`, `list_procedures` 조회 완료.
 
 ## 현재 범위와 후속 개발
 
-1. Windows REA는 실제 작동하지만 이 단계에서만 REA 유형을 위한 전용 stdio 브리지를 제공합니다. 범용 Windows stdio MCP와 VS Code 설정 가져오기는 후속 개발 항목입니다. Codex의 **기존 REA 및 로컬 HTTP MCP 설정을 비활성으로 가져오는 초기 기능**은 구현되어 있으나, 임의 stdio MCP 실행은 지원하지 않습니다.
+1. 일반 Windows stdio MCP는 Manager에서 **명시 승인한 .exe + 인수 기반 실행**을 지원합니다. Codex 설정 가져오기는 일반 stdio의 메타데이터 초안 등록까지 가능하지만, 명령·인수·비밀 환경 변수 복사 및 자동 승인은 하지 않습니다. VS Code 설정 가져오기는 아직 미구현입니다.
 2. 일반 HTTP MCP에서는 미지원 인증 방식 및 Stateful 세션 지속 사용을 별도로 구현해야 합니다.
 3. REA 쓰기·디버깅·임의 명령 도구의 승인 정책은 추후 구현하며 현재 허용하지 않습니다.
 4. Manager의 UI는 Registry 관리 기능이며 **임의 패키지를 설치하는 자동 설치기**는 아닙니다.
@@ -83,7 +112,7 @@ Manager의 **Codex 설정 가져오기** 버튼은 사용자 홈 `.codex/config.
 - Codex 설정의 비밀 환경 변수와 임의의 명령줄은 Registry에 복사하지 않습니다.
 - 이미 등록한 ID는 덮어쓰지 않고 건너뜁니다.
 - 새 MCP 활성화와 도구 허용 목록은 사용자가 별도로 설정해야 합니다.
-- 임의 stdio MCP 자동 실행은 **아직 미지원**이며, 서버 단위 실행 승인과 비밀 관리가 구현될 때 확장합니다.
+- 일반 stdio MCP는 Manager에서 수동 설정·승인한 뒤 실행할 수 있습니다. Codex stdio 실행 명령의 **자동 복사 및 자동 실행은 미지원**이며, 비밀값도 가져오지 않습니다.
 
 파서 스모크 테스트: `dotnet run --project manager/CodexMcpImporter.Smoke/CodexMcpImporter.Smoke.csproj`.
 
