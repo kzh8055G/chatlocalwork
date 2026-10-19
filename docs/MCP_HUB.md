@@ -148,3 +148,24 @@ Manager의 **Codex 설정 가져오기** 버튼은 사용자 홈 `.codex/config.
 - 안전 검사에 거부된 실행은 다른 경로로 우회하지 않고 작업을 더 작은 전용 단계로 분리합니다.
 
 현재 운영 Registry에서 `node_repl`은 비활성 `windowsStdio` 초안이며 허용 도구는 0개이고, 승인된 stdio 실행 프로필은 없습니다. 따라서 자동 실행 상태가 아닙니다.
+
+
+## 공식 외부 Windows stdio MCP 검증 완료 (2026-10-19)
+
+범용 Windows stdio 중계가 mock 서버뿐 아니라 독립 배포된 실제 MCP 서버에서도 동작하는지 확인하기 위해 `@modelcontextprotocol/server-everything@1.0.0`을 사용했습니다.
+
+검증 결과:
+
+1. **직접 stdio** — 기존 `StdioMcpClient`로 서버 초기화 및 `tools/list`를 수행해 13개 도구를 확인했습니다. `echo`와 `get-sum(17,25)=42` 호출 성공.
+2. **Windows Runner 큐** — 임시 Registry와 임시 host 프로필을 사용해 `windowsStdio` 경로로 동일 서버를 실행했습니다. 허용한 `echo`, `get-sum`만 노출·호출되고 미허용 도구는 거부됨.
+3. **LocalWork Hub E2E** — 실제 `registerHubTools`의 `mcp_list_tools` / `mcp_call_tool`을 통해 임시 Windows Runner 큐와 Everything MCP까지 연결했습니다. 허용 도구 조회, `echo`, 합계 42, 미허용 도구 거부 모두 통과.
+
+검증은 테스트 전용 임시 디렉터리에서 수행했고 종료 시 정리합니다. **운영 `mcp-servers.json`, 기존 REA 설정, 사용자 승인 상태는 변경하지 않았습니다.**
+
+관련 테스트:
+
+- `windows-runner/everything-stdio.integration.test.cjs`
+- `windows-runner/stdio-runner-real.integration.test.cjs`
+- `windows-runner/everything-localwork-hub.e2e.mjs`
+
+따라서 v0.4.0 기준으로 범용 Windows stdio MCP의 핵심 중계 경로는 실제 외부 MCP 서버까지 검증된 상태입니다. 남은 운영 과제는 Manager GUI에서 실제 서버를 사용자가 등록·승인하는 수동 E2E와 설치/업데이트 lifecycle 자동화입니다.

@@ -331,7 +331,7 @@ timeoutMs
 
 - `windows-runner/everything-stdio.integration.test.cjs`를 추가했습니다. 별도 설치된 공식 `@modelcontextprotocol/server-everything@1.0.0`에 대해 Windows의 기존 `StdioMcpClient`로 `initialize`, `tools/list`, `echo`, `get-sum(17,25)`를 검증하는 재현 가능한 테스트입니다.
 - 설치 대상은 `%LOCALAPPDATA%\ChatLocalWork\tools\mcp-everything`이며 실제 Windows 런타임의 Node.js를 사용합니다. 서버 실행 경로나 실행 프로필에 개인 사용자 이름을 하드코딩하지 않습니다.
-- **상태: 작성 완료, 실행 검증 미완료.** `node --test chatlocalwork\windows-runner\everything-stdio.integration.test.cjs`를 Windows Runner로 실행하려 했으나 로컬 실행 도구의 안전 검사에서 거부됐습니다. 따라서 이 테스트가 성공했다고 기록하지 않습니다.
+- **상태: 검증 완료.** 기존 테스트 파일을 Windows에서 직접 실행해 Everything MCP 1.0.0의 `tools/list` 13개 도구, `echo`, `get-sum(17,25)=42` 호출을 확인했습니다. 추가로 격리된 Windows Runner 큐와 LocalWork Hub의 `mcp_list_tools`/`mcp_call_tool`을 통해 동일 서버를 호출하는 E2E 테스트도 통과했습니다.
 - 운영 `mcp-servers.json`과 Windows 승인 프로필을 변경하지 않았고, 기존 REA 설정도 유지했습니다. 향후 승인된 실행 흐름에서 테스트 성공을 확인한 후에만 운영 Registry에서 `echo`, `get-sum` 등의 최소 허용 도구를 수동 등록합니다.
 
 
@@ -343,3 +343,15 @@ timeoutMs
 - 재발 방지로 루트 `AGENTS.md`에 프로젝트 작업 규칙을 추가했습니다. 파일 수정은 전용 파일 도구, Git은 `git.exe` 직접 호출, Windows 런타임 상태 확인은 `scripts/windows/InspectRuntimeState.cjs`를 우선 사용합니다.
 - `InspectRuntimeState.cjs`는 Registry/승인 프로필/Runner 상태의 비민감 메타데이터만 표시하고 실행 경로·인수·환경 변수 값·비밀값을 출력하지 않습니다. 실제 운영 환경에서 정상 실행을 확인했습니다.
 - 현재 Registry의 `node_repl` 항목은 `windowsStdio` 타입의 **비활성 초안**이며 허용 도구가 0개입니다. 호스트 전용 stdio 승인 프로필 파일은 존재하지 않아 자동 실행 상태가 아닙니다. 기존 REA는 활성화 상태를 유지합니다.
+
+
+### 공식 Everything MCP 실서버 검증 완료 (2026-10-19)
+
+이 항목은 위의 "독립 MCP 실서버 테스트 코드 추가"에서 남아 있는 미완료 표현보다 최신 상태입니다.
+
+- 공식 `@modelcontextprotocol/server-everything@1.0.0`을 Windows에서 실제 실행했습니다.
+- 직접 stdio 검증에서 `tools/list` 13개 도구를 확인했고 `echo`, `get-sum(17,25)=42` 호출이 성공했습니다.
+- 격리된 Windows Runner 큐에서 동일 서버를 실행하여 `echo`, `get-sum` 호출과 미허용 도구 거부를 확인했습니다.
+- LocalWork Hub의 실제 `mcp_list_tools` / `mcp_call_tool` 코드를 포함한 독립 E2E 테스트도 통과했습니다.
+- E2E는 임시 디렉터리와 임시 Registry를 사용했고 테스트 종료 시 정리했습니다. 운영 Registry에는 Everything MCP를 추가하지 않았으며 기존 REA 설정도 유지했습니다.
+- 검증 파일: `windows-runner/everything-stdio.integration.test.cjs`, `windows-runner/stdio-runner-real.integration.test.cjs`, `windows-runner/everything-localwork-hub.e2e.mjs`.

@@ -13,7 +13,7 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 - `scripts/windows/InspectRuntimeState.cjs`를 추가해 실행 경로·인수·환경 변수 값·비밀값을 출력하지 않고 Registry, stdio 승인 프로필, Windows Runner 상태만 확인하도록 했습니다.
 
 ### Verification
-- 공식 Everything MCP 1.0.0을 대상으로 하는 `windows-runner/everything-stdio.integration.test.cjs`를 추가했습니다. 안전 검사로 Windows 실행은 아직 미검증이며 운영 Registry는 변경하지 않았습니다.
+- 공식 Everything MCP 1.0.0을 대상으로 하는 실제 Windows stdio 검증을 완료했습니다. 직접 stdio에서 `tools/list` 13개 도구를 확인하고 `echo`, `get-sum(17,25)=42` 호출을 통과했습니다. 이어 격리된 Windows Runner 큐와 LocalWork Hub `mcp_list_tools`/`mcp_call_tool`까지 포함한 E2E를 통과했으며, 미허용 도구 거부도 확인했습니다. 운영 Registry는 변경하지 않았습니다.
 
 ## [0.4.0] - 2026-10-19
 
