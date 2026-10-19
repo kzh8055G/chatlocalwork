@@ -96,6 +96,12 @@ REA의 Ghidra 및 Node npm CLI 위치는 **Docker 공유 Registry가 아닌** Wi
 - Windows Manager: `dotnet build manager/ChatLocalWork.Manager/ChatLocalWork.Manager.csproj -c Release`
 - 실제 Docker→Windows Runner→REA→Ghidra 통합 검증: `CPS1NativeRecompiler/build/native/sample.exe`를 `open_binary`로 열고 `list_documents`, `list_procedures` 조회 완료.
 
+## v0.3.0 배포 상태 (2026-10-19)
+
+- Manager 실행 파일 v0.3.0 교체·재시작, Windows Runner 재시작, Docker LocalWork 새 코드 배포 확인.
+- Docker → Windows Runner → 기존 REA/Ghidra로 `sample.exe` 열기·문서·함수 목록 조회 성공.
+- 범용 Windows stdio MCP는 격리된 모의 서버와 Windows Runner 큐에서 검증했으나, **실제 사용자의 다른 stdio MCP를 운영 Registry에 등록하지는 않았습니다.** 사용자 승인과 도구 목록 설정 후 사용할 수 있습니다.
+
 ## 현재 범위와 후속 개발
 
 1. 일반 Windows stdio MCP는 Manager에서 **명시 승인한 .exe + 인수 기반 실행**을 지원합니다. Codex 설정 가져오기는 일반 stdio의 메타데이터 초안 등록까지 가능하지만, 명령·인수·비밀 환경 변수 복사 및 자동 승인은 하지 않습니다. VS Code 설정 가져오기는 아직 미구현입니다.
@@ -116,4 +122,4 @@ Manager의 **Codex 설정 가져오기** 버튼은 사용자 홈 `.codex/config.
 
 파서 스모크 테스트: `dotnet run --project manager/CodexMcpImporter.Smoke/CodexMcpImporter.Smoke.csproj`.
 
-검증 상태: Codex 설정 파서 스모크 테스트 통과, Manager Release 빌드 경고 0/오류 0. **실행 중인 Manager에 이 신규 UI가 실제 배포됐는지는 미확인**입니다. 소스 빌드 성공과 운영 배포를 동일하게 취급하지 않습니다.
+검증 상태: Codex 설정 파서 스모크 테스트 통과, Manager Release 빌드 경고 0/오류 0. **v0.3.0 Manager 실행 파일로 배포 완료**했습니다. 다만 Codex 가져오기 버튼을 직접 클릭하는 수동 UI E2E 검증은 별도로 남아 있습니다.

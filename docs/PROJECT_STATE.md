@@ -296,7 +296,7 @@ timeoutMs
 - LocalWork 실행 환경에서 새 Registry와 REA 활성화 상태를 확인했습니다. Manager의 Registry 경로 수정 빌드 및 재시작 확인 완료.
 - Windows Runner의 허용 목록에 `mame.exe`를 추가하고 Manager의 실행 승인 대화상자를 전면 표시하도록 변경했습니다. Manager Release 빌드 통과. 사용자 화면에서 승인 동작을 클릭하는 실제 UI E2E 검증은 별도입니다.
 - Manager에 **Codex 설정 가져오기** 버튼을 구현했습니다. `%USERPROFILE%\.codex\config.toml`의 MCP 등록을 조회해 기존 REA 연결과 로컬 HTTP MCP에 한하여 **비활성 Registry 항목**으로 가져옵니다. 현재 입력 범위는 일반적인 단일 행 문자열·배열·env 섹션입니다.
-- Codex 가져오기 구현은 `manager/ChatLocalWork.Manager/CodexMcpImporter.cs`, `McpHubForm.cs`에 있습니다. 파서 스모크 테스트와 Manager Release 빌드는 모두 통과했습니다. **실제 실행 중인 Manager로 새 Codex UI를 교체·배포한 사실은 확인되지 않았습니다.**
+- Codex 가져오기 구현은 `manager/ChatLocalWork.Manager/CodexMcpImporter.cs`, `McpHubForm.cs`에 있습니다. 파서 스모크 테스트와 Manager Release 빌드는 모두 통과했습니다. **최초 구현 시점에는 운영 배포 전이었으며, 이후 v0.3.0 Manager 실행 파일로 교체했습니다. 실제 버튼 클릭 UI E2E 검증은 별도입니다.**
 - **미구현:** 범용 Windows stdio MCP 중계/실행 승인, Codex·VS Code의 모든 MCP 종류 가져오기, 완전한 TOML 문법 파싱, HTTP MCP 장기 세션·원격 인증, REA의 쓰기 등 추가 위험 도구 승인.
 
 ### 문서 갱신 원칙
@@ -315,4 +315,5 @@ timeoutMs
 - Manager의 MCP 관리 화면에 **Windows stdio MCP** 유형, 실행 파일·인수·Workspace 폴더·환경 변수 이름·도구 목록, 명시적인 실행 승인 절차를 추가했습니다. 실행 설정은 Docker 공유 폴더 외부의 `%LOCALAPPDATA%\ChatLocalWork\private\mcp-stdio-profiles.json`에 저장합니다.
 - Codex에서 일반 stdio MCP를 가져오면 이름·ID만 비활성 초안으로 등록합니다. 임의 명령·인수·비밀 환경 변수는 자동 가져오지 않습니다. 실행 시 사용자가 별도로 명령을 구성하고 승인해야 합니다.
 - Windows 단위 테스트와 Windows Runner 큐 통합 테스트에서 허용 도구 조회·호출 성공, 차단 도구·미승인 프로필·비활성 서버·Workspace 밖 경로·차단된 exe 거부를 검증했습니다. 기존 REA → Ghidra 12.1.4에서 `sample.exe` 열기·함수 목록 회귀 테스트 통과, Manager Release 빌드 및 TypeScript 검사 통과.
+- **운영 배포 확인:** Manager v0.3.0 실행 파일을 백업 후 교체하고 새 프로세스 실행을 확인했습니다. Docker LocalWork를 재빌드·재생성했고, Windows Runner도 새 코드로 재시작했습니다. 운영 허브에서 REA `mcp_list_tools`, `open_binary(sample.exe)`, `list_documents`, `list_procedures` 호출이 모두 성공했습니다. **일반 stdio 서버의 운영 등록은 아직 없으며**, 그 경로는 격리된 Windows Runner 큐 통합 테스트로 검증했습니다.
 - **후속:** VS Code MCP 설정 가져오기, 정교한 실행 인수/환경 변수 편집, MCP 서버별 감사 로그, HTTP MCP 상태 유지/원격 인증, 더 세밀한 위험 도구 승인 정책. 현재 설정은 서버 프로세스에 Windows 실행 권한을 부여하므로 신뢰한 서버에만 사용해야 합니다.

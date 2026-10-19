@@ -20,7 +20,8 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 - 서버 비활성화·프로필 변경 시 기존 프로세스 자동 종료 및 재승인 정책.
 
 ### Verified
-- Windows 모의 MCP 직접 테스트, Windows Runner 큐 통합 테스트, 기존 REA/Ghidra 바이너리 실검증 통과. Manager Release 빌드와 LocalWork TypeScript 검사 통과.
+- Windows 모의 MCP 직접 테스트, Windows Runner 큐 통합 테스트, 기존 REA/Ghidra 바이너리 실검증 통과. Manager Release 빌드와 LocalWork TypeScript 검사 통과. Linux 회귀 테스트 50개 통과.
+- Manager v0.3.0, Docker LocalWork, Windows Runner 실제 재시작 및 운영 중인 REA 분석 호출 검증 완료. 일반 stdio MCP는 격리 테스트 완료, 운영 서버 미등록.
 
 
 ### Added
