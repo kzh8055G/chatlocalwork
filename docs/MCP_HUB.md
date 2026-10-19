@@ -13,7 +13,7 @@ ChatGPT에는 LocalWork 앱 하나만 등록하고, 내부 MCP 서버를 Manager
 ## Registry 및 UI
 
 - Windows Manager → **MCP 서버 관리...**
-- Windows Workspace 경로: `%LOCALAPPDATA%\ChatLocalWork\config\mcp-servers.json`
+- Windows 호스트 설정 경로: `%LOCALAPPDATA%\ChatLocalWork\config\mcp-servers.json`
 - Docker 경로: `/chatlocalwork-config/mcp-servers.json`
 - 기존 Workspace의 `.chatlocalwork/mcp-servers.json`은 StartMCP가 새 설정이 없는 경우에 한하여 이전합니다. 정상 검증 뒤 기존 폴더를 정리할 수 있습니다.
 - Docker는 호스트 `config` 폴더만 별도 **읽기 전용 마운트**합니다.
@@ -69,7 +69,7 @@ REA의 Ghidra 및 Node npm CLI 위치는 **Docker 공유 Registry가 아닌** Wi
 
 ## 현재 범위와 후속 개발
 
-1. Windows REA는 실제 작동하지만 이 단계에서만 REA 유형을 위한 전용 stdio 브리지를 제공합니다. 범용 Windows stdio MCP 및 Codex/VS Code 설정 자동 가져오기는 후속 개발 항목입니다.
+1. Windows REA는 실제 작동하지만 이 단계에서만 REA 유형을 위한 전용 stdio 브리지를 제공합니다. 범용 Windows stdio MCP와 VS Code 설정 가져오기는 후속 개발 항목입니다. Codex의 **기존 REA 및 로컬 HTTP MCP 설정을 비활성으로 가져오는 초기 기능**은 구현되어 있으나, 임의 stdio MCP 실행은 지원하지 않습니다.
 2. 일반 HTTP MCP에서는 미지원 인증 방식 및 Stateful 세션 지속 사용을 별도로 구현해야 합니다.
 3. REA 쓰기·디버깅·임의 명령 도구의 승인 정책은 추후 구현하며 현재 허용하지 않습니다.
 4. Manager의 UI는 Registry 관리 기능이며 **임의 패키지를 설치하는 자동 설치기**는 아닙니다.
@@ -86,3 +86,5 @@ Manager의 **Codex 설정 가져오기** 버튼은 사용자 홈 `.codex/config.
 - 임의 stdio MCP 자동 실행은 **아직 미지원**이며, 서버 단위 실행 승인과 비밀 관리가 구현될 때 확장합니다.
 
 파서 스모크 테스트: `dotnet run --project manager/CodexMcpImporter.Smoke/CodexMcpImporter.Smoke.csproj`.
+
+검증 상태: Codex 설정 파서 스모크 테스트 통과, Manager Release 빌드 경고 0/오류 0. **실행 중인 Manager에 이 신규 UI가 실제 배포됐는지는 미확인**입니다. 소스 빌드 성공과 운영 배포를 동일하게 취급하지 않습니다.

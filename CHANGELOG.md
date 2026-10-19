@@ -9,7 +9,7 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
 
 ### Added
-- Manager의 `Codex 설정 가져오기`: `~/.codex/config.toml`에서 REA 및 로컬 HTTP MCP를 찾아 비활성 Registry 항목으로 가져오는 초기 버전. 비밀 환경 변수와 미승인 stdio 실행 명령은 가져오지 않음.
+- Manager의 `Codex 설정 가져오기`: `~/.codex/config.toml`에서 REA 및 로컬 HTTP MCP를 찾아 비활성 Registry 항목으로 가져오는 초기 버전. 비밀 환경 변수와 미승인 stdio 실행 명령은 가져오지 않음. 소스·파서 스모크 테스트·Release 빌드 완료, 실행 중인 Manager 신규 UI 배포는 미확인.
 
 ### Fixed
 - Manager의 Windows 명령 실행 승인 창을 최상위 창·작업 표시줄에 표시하고 열릴 때 활성화하여 승인 대화상자가 뒤로 숨는 문제를 방지.

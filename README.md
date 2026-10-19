@@ -85,6 +85,8 @@ Docker에서는 이 런타임 폴더가 다음 경로로 마운트됩니다.
 - OAuth 2.1 / DCR / PKCE 처리
 - Linux/Docker 파일 및 프로세스 도구 제공
 - `windows_exec`를 통해 Windows Runner와 연결
+- **MCP Hub:** 등록된 MCP 서버의 조회·도구 탐색·호출(`mcp_list_servers`, `mcp_list_tools`, `mcp_call_tool`)
+- Windows Runner 큐를 통해 REA/Ghidra를 연결하고, 로컬 HTTP MCP는 Registry로 관리
 
 LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 
@@ -128,6 +130,8 @@ LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 - 로그인 완료 후 `.env`를 구성하고 환경 READY이면 MCP 자동 Start
 - Workspace 변경은 `manager-settings.json`에 저장되고 Manager 재시작 후 적용
 - Runner 로그 확인
+- `MCP 서버 관리...`에서 서버 Registry 등록·활성화·허용 도구 관리
+- `Codex 설정 가져오기`로 Codex의 기존 REA 또는 로컬 HTTP MCP를 **비활성 상태**로 가져오기(일반 stdio 실행은 미지원)
 
 설치형 실행 시 기본 경로는 다음과 같습니다.
 
@@ -202,6 +206,7 @@ scripts\windows\StopMCP.bat
 ## 문서
 
 - `docs/ARCHITECTURE.md` — 전체 구조와 데이터 흐름
+- `docs/MCP_HUB.md` — MCP 허브 구조, Registry 위치, REA 연동, Codex 설정 가져오기 및 제약 사항
 - `docs/PROJECT_STATE.md` — 현재 구현/검증 상태와 남은 작업
 - `docs/SECURITY.md` — Windows Runner 실행 보안 모델
 - `docs/TROUBLESHOOTING.md` — Start/Runner/Docker/Tailscale 문제 해결
@@ -209,6 +214,14 @@ scripts\windows\StopMCP.bat
 - `manager/README.md` — Manager
 - `windows-runner/README.md` — Windows Runner
 - `localworkmcp/README.md` — MCP 서버 컴포넌트
+
+## MCP Hub 설정 및 동작 범위
+
+- Registry: `%LOCALAPPDATA%\ChatLocalWork\config\mcp-servers.json`
+- Docker: 호스트 설정 폴더를 `/chatlocalwork-config`에 읽기 전용 마운트
+- REA: Windows Runner를 통해 연결, 현재 21개 지정 도구만 허용
+- Codex 가져오기: **소스 구현 및 Manager Release 빌드·파서 스모크 테스트 완료**. 실제 실행 중인 Manager에 신규 UI를 배포했는지는 별도로 확인 필요
+- 일반 Windows stdio MCP 임의 실행, 복잡한 TOML 전체 규격, OAuth가 필요한 외부 HTTP MCP는 현재 미지원
 
 ## 저장소
 

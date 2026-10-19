@@ -1,6 +1,6 @@
 # ChatLocalWork 프로젝트 상태
 
-기준일: 2026-10-01
+기준일: 2026-10-19
 
 ## 목표
 
@@ -280,8 +280,29 @@ timeoutMs
 ### LocalWork 범용 MCP Hub v0.2.0 (2026-10-19)
 
 - `docs/MCP_HUB.md`에 아키텍처와 사용 방법 기록.
-- `/shared/.chatlocalwork/mcp-servers.json`에서 MCP Registry 관리. 서버 조회·도구 조회·도구 호출 3개를 고정 MCP 도구로 제공. HTTP Streamable 및 Windows REA 큐 전용 전송 방식 제공.
+- MCP Registry 도입 당시 `/shared/.chatlocalwork/mcp-servers.json`을 사용했으나, 현재는 `%LOCALAPPDATA%\ChatLocalWork\config\mcp-servers.json`(Docker: 읽기 전용 `/chatlocalwork-config/mcp-servers.json`)으로 이전했습니다. 서버 조회·도구 조회·도구 호출 3개를 고정 MCP 도구로 제공. HTTP Streamable 및 Windows REA 큐 전용 전송 방식 제공.
 - Manager에 MCP 서버 관리 화면 및 REA 등록 템플릿 추가, 실행 어셈블리 버전 0.2.0.
 - Windows Runner가 REA stdio MCP 프로세스를 유지하며, Docker↔Windows 큐로 21개 지정 도구 호출. 바이너리 선택은 Workspace 내부 실파일로 제한.
 - 검증: HTTP 모의 MCP 중계 테스트, Registry 유효성 검사, Windows 격리 큐 스모크 테스트 및 Docker LocalWork→Windows Runner→REA 6.5.0→Ghidra 12.1.4→sample.exe 실제 함수 목록 조회 성공.
 - 미구현: 범용 Windows stdio 서버 자동 가져오기, 일반 HTTP MCP 상태 유지, REA 위험 도구 개별 승인, 설치/업데이트 자동화.
+
+
+### MCP Hub Registry 경로 이전 및 Codex 설정 가져오기 (2026-10-19)
+
+**현재 기준 정보:** 이 항목이 앞선 2026-10-19 MCP Hub v0.2.0 초기 기록보다 최신이며, 경로·지원 상태가 충돌하면 이 항목과 `docs/MCP_HUB.md`를 우선합니다.
+
+- 기존 Workspace의 `.chatlocalwork/mcp-servers.json`을 `%LOCALAPPDATA%\ChatLocalWork\config\mcp-servers.json`으로 이전했습니다. `StartMCP.cjs`는 신규 파일이 없을 때 기존 파일을 한 번 복사하도록 구성했고, Docker는 호스트 config 디렉터리를 별도 읽기 전용 bind mount로 사용합니다.
+- 기존 `.rea-diagnostics`는 `%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics`로 백업한 후 Workspace에서 정리했습니다.
+- LocalWork 실행 환경에서 새 Registry와 REA 활성화 상태를 확인했습니다. Manager의 Registry 경로 수정 빌드 및 재시작 확인 완료.
+- Windows Runner의 허용 목록에 `mame.exe`를 추가하고 Manager의 실행 승인 대화상자를 전면 표시하도록 변경했습니다. Manager Release 빌드 통과. 사용자 화면에서 승인 동작을 클릭하는 실제 UI E2E 검증은 별도입니다.
+- Manager에 **Codex 설정 가져오기** 버튼을 구현했습니다. `%USERPROFILE%\.codex\config.toml`의 MCP 등록을 조회해 기존 REA 연결과 로컬 HTTP MCP에 한하여 **비활성 Registry 항목**으로 가져옵니다. 현재 입력 범위는 일반적인 단일 행 문자열·배열·env 섹션입니다.
+- Codex 가져오기 구현은 `manager/ChatLocalWork.Manager/CodexMcpImporter.cs`, `McpHubForm.cs`에 있습니다. 파서 스모크 테스트와 Manager Release 빌드는 모두 통과했습니다. **실제 실행 중인 Manager로 새 Codex UI를 교체·배포한 사실은 확인되지 않았습니다.**
+- **미구현:** 범용 Windows stdio MCP 중계/실행 승인, Codex·VS Code의 모든 MCP 종류 가져오기, 완전한 TOML 문법 파싱, HTTP MCP 장기 세션·원격 인증, REA의 쓰기 등 추가 위험 도구 승인.
+
+### 문서 갱신 원칙
+
+- `README.md`: 현재 사용 가능한 기능, 경로 및 시작 방법 요약.
+- `docs/PROJECT_STATE.md`: 현재 구현/테스트/배포 상태, 제약 및 다음 작업. 이전 기록은 남기되 최신 변경에서 정정하고 기준일을 갱신.
+- `docs/MCP_HUB.md`: MCP Registry 규격, 도구 동작, Windows REA/Codex 가져오기 절차와 권한 정책.
+- `CHANGELOG.md`: 최신 기능 변경을 `Unreleased`에 추가하고, 릴리스 시 버전별 항목으로 이동.
+- 기능 작업 커밋 전후로 위 문서들의 표현과 실제 코드의 일치 여부를 확인합니다. Git 커밋 본문은 한글·영문 병기합니다.
