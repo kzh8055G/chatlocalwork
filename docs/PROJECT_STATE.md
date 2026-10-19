@@ -317,3 +317,11 @@ timeoutMs
 - Windows 단위 테스트와 Windows Runner 큐 통합 테스트에서 허용 도구 조회·호출 성공, 차단 도구·미승인 프로필·비활성 서버·Workspace 밖 경로·차단된 exe 거부를 검증했습니다. 기존 REA → Ghidra 12.1.4에서 `sample.exe` 열기·함수 목록 회귀 테스트 통과, Manager Release 빌드 및 TypeScript 검사 통과.
 - **운영 배포 확인:** Manager v0.3.0 실행 파일을 백업 후 교체하고 새 프로세스 실행을 확인했습니다. Docker LocalWork를 재빌드·재생성했고, Windows Runner도 새 코드로 재시작했습니다. 운영 허브에서 REA `mcp_list_tools`, `open_binary(sample.exe)`, `list_documents`, `list_procedures` 호출이 모두 성공했습니다. **일반 stdio 서버의 운영 등록은 아직 없으며**, 그 경로는 격리된 Windows Runner 큐 통합 테스트로 검증했습니다.
 - **후속:** VS Code MCP 설정 가져오기, 정교한 실행 인수/환경 변수 편집, MCP 서버별 감사 로그, HTTP MCP 상태 유지/원격 인증, 더 세밀한 위험 도구 승인 정책. 현재 설정은 서버 프로세스에 Windows 실행 권한을 부여하므로 신뢰한 서버에만 사용해야 합니다.
+
+
+### Windows stdio MCP 도구 조회 기능 v0.4.0 (2026-10-19)
+
+- Manager에 `도구 조회...` 버튼과 `McpStdioInspector.cs`를 추가했습니다. 사용자 확인을 받은 다음 별도 Windows `.exe` MCP 프로세스를 시작하고 `initialize`·`tools/list`만 실행하여 도구 이름을 확인하며, 사용자가 선택한 도구만 허용 목록에 추가합니다. 조회만으로 실행 프로필을 승인하거나 활성화하지 않습니다.
+- `manager/McpStdioInspector.Smoke`에서 모의 MCP 서버로 도구 목록을 받아오고 `cmd.exe` 같은 차단된 실행 파일을 거부하는 테스트 통과. Manager Release 빌드 통과.
+- **Codex node_repl 실서버 미검증:** Codex 설정에 `node_repl` MCP가 등록된 것은 확인했으나, Codex 런타임 실행 파일을 확인/실행하는 로컬 도구 요청이 안전 검사에 차단돼 실제 호출은 진행하지 않았습니다. 차단 우회 없이 향후 Manager의 사용자 수동 승인/테스트를 통해 확인해야 합니다.
+- **운영 배포 상태:** Manager v0.4.0 실행 파일 5개를 교체했고, 이전 빌드는 `%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics\manager-before-v0.4.0`에 백업했습니다. 새 Manager 프로세스 정상 시작 확인. GUI 버튼을 사람이 클릭하는 종단간 UI 테스트와 Codex `node_repl` 실서버 호출은 수행하지 않았습니다.

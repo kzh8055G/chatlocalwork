@@ -131,7 +131,7 @@ LocalWorkMCP 자체 설명은 `localworkmcp/README.md`를 참고합니다.
 - Workspace 변경은 `manager-settings.json`에 저장되고 Manager 재시작 후 적용
 - Runner 로그 확인
 - `MCP 서버 관리...`에서 서버 Registry 등록·활성화·허용 도구 관리
-- `Codex 설정 가져오기`로 Codex의 기존 REA 또는 로컬 HTTP MCP를 **비활성 상태**로 가져오기(일반 stdio 실행은 미지원)
+- `Codex 설정 가져오기`로 Codex의 MCP 목록을 **비활성 초안**으로 가져오기(실행 명령·비밀 환경 변수는 가져오지 않음)
 
 설치형 실행 시 기본 경로는 다음과 같습니다.
 
@@ -222,6 +222,7 @@ scripts\windows\StopMCP.bat
 - REA: Windows Runner를 통해 연결, 현재 21개 지정 도구만 허용
 - Codex 가져오기: **소스 구현 및 Manager Release 빌드·파서 스모크 테스트 완료**. Manager v0.3.0에 배포 완료. 버튼 클릭을 포함한 수동 UI E2E 검증은 별도
 - Windows stdio MCP는 Manager에서 서버별 `.exe` 실행 설정과 허용 도구를 직접 승인한 경우 지원. Codex 설정의 자동 실행·환경 비밀값 가져오기는 미지원
+- Manager v0.4.0의 `도구 조회...`에서 실행을 별도로 승인한 후 MCP 도구 목록을 확인하고 직접 선택 가능. 실제 도구 호출은 승인·저장 이후에만 가능
 - 복잡한 TOML 전체 규격, OAuth가 필요한 외부 HTTP MCP는 현재 미지원
 
 ## 저장소

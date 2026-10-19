@@ -63,8 +63,9 @@ internal sealed class McpHubForm : Form
             UpdateTransportFields();
         };
         var buttons=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=true,AutoScroll=true};
-        var save=new Button{Text="추가 / 저장",AutoSize=true};var delete=new Button{Text="선택 삭제",AutoSize=true};var reload=new Button{Text="다시 읽기",AutoSize=true};var rea=new Button{Text="REA 자동 설정",AutoSize=true};var codex=new Button{Text="Codex 설정 가져오기",AutoSize=true};
-        buttons.Controls.AddRange([save,delete,reload,rea,codex]);
+        var save=new Button{Text="추가 / 저장",AutoSize=true};var delete=new Button{Text="선택 삭제",AutoSize=true};var reload=new Button{Text="다시 읽기",AutoSize=true};var rea=new Button{Text="REA 자동 설정",AutoSize=true};var codex=new Button{Text="Codex 설정 가져오기",AutoSize=true};var inspect=new Button{Text="도구 조회...",AutoSize=true};
+        buttons.Controls.AddRange([save,delete,reload,rea,codex,inspect]);
+        inspect.Click+=async (_,_)=>await InspectStdioToolsAsync(inspect);
         codex.Click+=(_,_)=>ImportCodex();
         rea.Click+=(_,_)=>SetReaDefaults();
         save.Click+=(_,_)=>SaveEntry();delete.Click+=(_,_)=>DeleteEntry();reload.Click+=(_,_)=>Reload();
@@ -124,6 +125,41 @@ internal sealed class McpHubForm : Form
             MessageBox.Show(this,$"Codex 설정 {found.Count}개 발견, {imported}개를 비활성 상태로 가져왔습니다.\n\n실행 환경과 허용 도구를 확인한 뒤 직접 활성화해 주세요. stdio 항목은 실행 명령을 가져오지 않았으며 수동 승인 후 사용할 수 있습니다.","Codex 설정 가져오기");
         }
         catch(Exception ex){MessageBox.Show(this,ex.Message,"Codex 설정 분석 오류");}
+    }
+    private async Task InspectStdioToolsAsync(Button button)
+    {
+        if(_transport.SelectedIndex!=2) {MessageBox.Show(this,"Windows stdio MCP 유형에서 사용하세요.");return;}
+        var command=_command.Text.Trim();var cwd=_cwd.Text.Trim();
+        var args=_args.Lines.Where(x=>!string.IsNullOrWhiteSpace(x)).ToArray();
+        var envNames=_envNames.Lines.Select(x=>x.Trim()).Where(x=>x.Length>0).Distinct().ToArray();
+        var root=Path.GetFullPath(_workspaceRoot).TrimEnd(Path.DirectorySeparatorChar);
+        if(!Directory.Exists(cwd) || !(Path.GetFullPath(cwd).Equals(root,StringComparison.OrdinalIgnoreCase)
+           || Path.GetFullPath(cwd).StartsWith(root+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)))
+        {MessageBox.Show(this,"작업 폴더는 Workspace 내부여야 합니다.");return;}
+        var detail=$"실행 파일: {command}\n인수: {string.Join(" ",args)}\n작업 폴더: {cwd}\n환경 변수 이름: {string.Join(", ",envNames)}\n\n도구 목록 조회를 위해 프로그램을 한 번 실행합니다. 실행 파일 자체의 부작용은 보장할 수 없습니다. 승인하시겠습니까?";
+        if(MessageBox.Show(this,detail,"MCP 실행 승인 (도구 조회 전용)",MessageBoxButtons.YesNo,MessageBoxIcon.Warning)!=DialogResult.Yes)return;
+        button.Enabled=false;
+        try
+        {
+            var tools=await McpStdioInspector.ListToolsAsync(command,args,cwd,envNames,CancellationToken.None);
+            using var dialog=new Form {Text="허용할 MCP 도구 선택",Width=590,Height=610,MinimumSize=new Size(480,450),StartPosition=FormStartPosition.CenterParent,AutoScaleMode=AutoScaleMode.Dpi};
+            var list=new CheckedListBox {Dock=DockStyle.Fill,CheckOnClick=true,HorizontalScrollbar=true};
+            foreach(var name in tools)list.Items.Add(name,false);
+            var explanation=new Label {Text=$"조회 도구 {tools.Count}개 — 허용할 도구만 선택하세요. 기본 선택은 0개입니다.",Dock=DockStyle.Top,Height=50};
+            var add=new Button {Text="선택 도구 추가",AutoSize=true,DialogResult=DialogResult.OK};
+            var cancel=new Button {Text="취소",AutoSize=true,DialogResult=DialogResult.Cancel};
+            var bottom=new FlowLayoutPanel {Dock=DockStyle.Bottom,Height=55,AutoScroll=true};
+            bottom.Controls.AddRange([add,cancel]);
+            dialog.Controls.Add(list);dialog.Controls.Add(bottom);dialog.Controls.Add(explanation);
+            dialog.AcceptButton=add;dialog.CancelButton=cancel;
+            if(dialog.ShowDialog(this)==DialogResult.OK)
+            {
+                var selected=list.CheckedItems.Cast<string>().ToArray();
+                if(selected.Length>0)_tools.Lines=_tools.Lines.Concat(selected).Where(x=>!string.IsNullOrWhiteSpace(x)).Distinct().ToArray();
+            }
+        }
+        catch(Exception ex) {MessageBox.Show(this,ex.Message,"MCP 도구 조회 실패",MessageBoxButtons.OK,MessageBoxIcon.Error);}
+        finally {button.Enabled=true;}
     }
     private void SaveEntry()
     {

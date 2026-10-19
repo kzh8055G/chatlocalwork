@@ -96,6 +96,16 @@ REA의 Ghidra 및 Node npm CLI 위치는 **Docker 공유 Registry가 아닌** Wi
 - Windows Manager: `dotnet build manager/ChatLocalWork.Manager/ChatLocalWork.Manager.csproj -c Release`
 - 실제 Docker→Windows Runner→REA→Ghidra 통합 검증: `CPS1NativeRecompiler/build/native/sample.exe`를 `open_binary`로 열고 `list_documents`, `list_procedures` 조회 완료.
 
+## Windows stdio MCP 도구 조회 기능 (v0.4.0)
+
+Manager에서 **Windows stdio MCP**를 선택한 다음 실행 파일·인수·작업 폴더·환경 변수 이름을 채우고 **도구 조회...**를 누르면, **해당 프로그램을 한 번 실행하는 데 대한 경고와 승인 대화상자**가 표시됩니다. 동의하면 최대 45초 동안 MCP `initialize`와 `tools/list`만 실행하여 도구 이름을 읽습니다. 실제 도구 실행(`tools/call`)은 하지 않으며, 프로세스를 종료합니다.
+
+- 조회된 도구는 기본적으로 **모두 미선택**입니다. 사용자가 선택한 도구 이름만 입력창에 추가할 수 있습니다.
+- **추가 / 저장**을 누를 때에는 기존 Windows stdio 서버 실행 승인과 프로필 저장 절차가 별도로 유지됩니다. 즉, 조회만으로 MCP가 자동 등록·활성화되지는 않습니다.
+- 저장할 실행 파일과 도구 목록은 별도로 검토해야 하며, 실행 파일 자체가 악의적인 경우 목록 조회만으로도 부작용이 발생할 수 있습니다.
+- 테스트: `dotnet run --project manager/McpStdioInspector.Smoke/McpStdioInspector.Smoke.csproj -c Release -- <node.exe 절대 경로>` — 모의 stdio MCP 서버와 차단된 셸 실행 거부 확인.
+- Codex의 `node_repl`은 등록 항목이 확인됐으나 **실행 파일 직접 호출이 안전 검사에 막혀서 실제 도구 조회·호출 검증은 미완료**입니다. 이를 우회하지 않았고, 독립 실행 가능 여부와 보안 정책 검토가 필요합니다. v0.4.0 Manager는 실행 파일 교체·재시작을 확인했으나 신규 GUI 기능의 직접 클릭 E2E 검증은 별도입니다.
+
 ## v0.3.0 배포 상태 (2026-10-19)
 
 - Manager 실행 파일 v0.3.0 교체·재시작, Windows Runner 재시작, Docker LocalWork 새 코드 배포 확인.

@@ -8,6 +8,18 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 
 아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
 
+## [0.4.0] - 2026-10-19
+
+### Added
+- Manager의 Windows stdio MCP에 **도구 조회...** 버튼 추가. 사용자 실행 승인 후 `initialize`와 `tools/list`만 호출하며, 도구 선택은 기본 0개로 시작합니다.
+- 조회한 도구 이름 중 사용자가 직접 선택한 항목만 허용 목록으로 복사하고 기존의 최종 실행 승인·저장 절차는 유지.
+- `McpStdioInspector` 및 Windows mock MCP 서버를 이용한 스모크 테스트 추가.
+
+### Verified
+- Manager v0.4.0 Release 빌드, 모의 MCP 도구 조회 및 차단된 shell 실행 거부 테스트 통과. 이전 Manager 빌드 백업 후 v0.4.0 실행 파일 교체 및 프로세스 재시작 확인.
+- Codex `node_repl.exe` 직접 실행은 로컬 실행 도구의 안전 검사에 의해 차단됨. 우회 실행하지 않았으므로 실서버 연결과 `tools/call` 검증은 **미완료**.
+
+
 ## [0.3.0] - 2026-10-19
 
 ### Added
