@@ -1,3 +1,6 @@
-# Keep Linux/Docker scripts on Unix line endings even when cloned on Windows.
+# Keep repository text stable across Windows and Linux/Docker.
+# ChatLocalWork is edited from both environments, so do not let core.autocrlf
+# rewrite tracked text files on checkout.
+* text=auto eol=lf
 localworkmcp/tunneling/Dockerfile text eol=lf
 *.sh text eol=lf

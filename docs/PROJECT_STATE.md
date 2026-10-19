@@ -355,3 +355,10 @@ timeoutMs
 - LocalWork Hub의 실제 `mcp_list_tools` / `mcp_call_tool` 코드를 포함한 독립 E2E 테스트도 통과했습니다.
 - E2E는 임시 디렉터리와 임시 Registry를 사용했고 테스트 종료 시 정리했습니다. 운영 Registry에는 Everything MCP를 추가하지 않았으며 기존 REA 설정도 유지했습니다.
 - 검증 파일: `windows-runner/everything-stdio.integration.test.cjs`, `windows-runner/stdio-runner-real.integration.test.cjs`, `windows-runner/everything-localwork-hub.e2e.mjs`.
+
+
+### 저장소 줄바꿈 정책 정리 (2026-10-19)
+
+- Windows 전역 Git 설정이 `core.autocrlf=true`인 상태에서 Docker/Linux 도구가 LF로 파일을 기록하면, 실제 내용 diff가 없어도 Windows Git이 수십 개 파일을 수정으로 표시하는 현상을 확인했습니다.
+- 루트 `.gitattributes`에 `* text=auto eol=lf`를 추가해 추적 텍스트 파일의 작업 트리 줄바꿈을 LF로 고정했습니다. 기존 Dockerfile/쉘 스크립트 LF 정책도 유지합니다.
+- 목적은 Windows/컨테이너 양쪽에서 같은 파일을 편집해도 불필요한 CRLF↔LF 변환이 반복되지 않게 하는 것입니다.
