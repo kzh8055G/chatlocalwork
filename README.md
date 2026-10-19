@@ -195,6 +195,10 @@ scripts\windows\StartMCP.bat
 scripts\windows\StopMCP.bat
 ```
 
+## 버전 및 변경 이력
+
+- [CHANGELOG.md](CHANGELOG.md) — 버전별 주요 변경 사항과 버전 관리 규칙
+
 ## 문서
 
 - `docs/ARCHITECTURE.md` — 전체 구조와 데이터 흐름

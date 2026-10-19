@@ -1,0 +1,77 @@
+# 변경 이력 (CHANGELOG)
+
+ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버전별로 기록합니다. 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/)의 `Added / Changed / Fixed / Security` 구분을 참고합니다.
+
+> **버전 범위:** 여기의 `0.x.y`는 현재 **Manager 실행 파일의 버전**을 기준으로 작성합니다. LocalWorkMCP의 `package.json` 버전(현재 0.1.0)과 Installer 버전은 아직 통합되어 있지 않습니다. 날짜와 커밋은 Git 기록 기준이며, 기존 버전이 공식 릴리스·태그로 배포되었다는 의미는 아닙니다.
+
+## [Unreleased]
+
+아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
+
+### 문서
+- 변경 이력 파일 작성, 버전 갱신·검증 규칙 정의.
+
+## [0.2.0] - 2026-10-19
+
+### Added
+- **MCP Hub**: `mcp_list_servers`, `mcp_list_tools`, `mcp_call_tool`을 추가하여 LocalWork 하나로 외부 MCP 도구를 탐색하고 중계.
+- Registry 파일 `<Workspace>/.chatlocalwork/mcp-servers.json`을 통해 서버 등록·활성화·허용 도구 목록 관리.
+- Manager에 **MCP 서버 관리** 화면 및 REA 등록 템플릿 추가.
+- Windows Runner 큐를 사용하는 **REA 6.5.0 + Ghidra 12.1.4** 연동 및 실제 바이너리 분석 검증.
+- REA의 **허용 도구 21개**(읽기 중심 20개 + `open_binary`) 정책. 분석 대상은 Workspace 내부 실파일로 제한.
+- MCP Hub 개발·사용 문서 `docs/MCP_HUB.md`.
+
+### Verified
+- Linux 회귀 테스트 48개 통과, Manager Release 빌드 성공.
+- 운영 중인 Docker LocalWork → Windows Runner → REA → Ghidra에서 `sample.exe` 열기, 문서 및 함수 목록 조회 성공.
+
+### Commit
+- `5f29a0d` — MCP Hub, Manager UI, REA Runner 전송.
+
+## [0.1.0] - 2026-10-16
+
+**최초 명시적 Manager 버전.** 과거 프로젝트 전체를 0.1.0으로 소급해 태그한 것은 아닙니다.
+
+### Added
+- Manager 창 제목·화면·로그에 실행 중인 어셈블리 버전 표기.
+- Windows Runner에서 미등록 실행 파일을 사용할 때 Manager 승인 요청, 일회성·세션·해시 기반 신뢰·거부 정책.
+- Codex용 REA 설치 및 Ghidra/JDK 연동. 독립 HTTP MCP 브리지와 OAuth 실험용 게이트웨이 구현(별도 공개 서비스로 배포하지 않음).
+
+### Security
+- 독립 REA HTTP 브리지는 초기 20개 읽기 중심 도구로 제한.
+- REA OAuth 게이트웨이는 **프로토타입**이며 외부 공개·ChatGPT 독립 앱 등록은 완료하지 않음.
+
+### Commits
+- `d35a904` — Manager 버전 표시.
+- `f6ff7cc` — Windows Runner 실행 승인.
+- `c9430b1`, `e4d9290`, `556a4d2`, `9778209` — REA 설정·실험용 브리지·보안 검증.
+
+## 버전 도입 이전 (2026-09 ~ 2026-10-15)
+
+버전 번호가 없었던 개발 기록을 **날짜별 주요 이정표**로 정리합니다. 아래 구간을 별도의 정식 릴리스로 간주하지 않습니다.
+
+### 2026-10-11
+- Windows Runner 타임아웃 후 자식 프로세스 종료 지연 복구 강화 (`434e3a3`).
+
+### 2026-10-08
+- Manager 환경 설정 분리, Workspace 선택, 버튼·안내문 잘림 수정 (`0bfadbb`, `49c2433`, `42c5557`, `27e6c01`).
+
+### 2026-10-01
+- Installer의 의존성 설치와 Manager의 최초 환경 구성을 분리.
+- GitHub clone 기반 설치, 경로 분리, 환경 점검 및 시작/종료 자동화 보강.
+- 주요 커밋: `231a7bf`, `547ec7f`, `c080480`, `f1b648e`.
+
+### 2026-09
+- LocalWorkMCP, Windows Runner, Manager, 스크립트를 ChatLocalWork 프로젝트로 재구성.
+- Windows 직접 실행·파일 큐·Docker·Tailscale Funnel 기반 원격 작업 환경 구축.
+
+---
+
+## 버전 관리 규칙
+
+1. **버전 올릴 때:** Manager의 `ChatLocalWork.Manager.csproj`에서 `Version`, `AssemblyVersion`, `FileVersion`을 함께 변경합니다. 다른 컴포넌트의 버전과 동일하다고 자동 가정하지 않습니다.
+2. **코드 변경 시:** `Unreleased`에 사용자 관점의 변경점을 `Added / Changed / Fixed / Security / Removed` 등으로 기록합니다. 내부 실험은 완료·배포 여부를 명시합니다.
+3. **버전 확정 시:** 해당 변경들을 새 `[x.y.z] - YYYY-MM-DD` 항목으로 이동하고 관련 Git 커밋을 기록합니다.
+4. **검증:** 빌드·테스트 결과는 실제 확인한 수치만 기록합니다. 배포 전용 작업과 소스 커밋은 구별합니다.
+5. **릴리스 태그:** 정식 릴리스를 만드는 경우 검증된 커밋에 `vX.Y.Z` 태그를 생성합니다. **이번 문서 작성만으로 태그를 생성하지 않습니다.**
+6. **버전 원칙:** 초기 개발 단계에서는 `0.MINOR.PATCH`를 사용하고, 기능 추가는 MINOR, 호환 가능한 오류 수정은 PATCH 증가를 기본으로 합니다.
