@@ -74,3 +74,15 @@ REA의 Ghidra 및 Node npm CLI 위치는 **Docker 공유 Registry가 아닌** Wi
 3. REA 쓰기·디버깅·임의 명령 도구의 승인 정책은 추후 구현하며 현재 허용하지 않습니다.
 4. Manager의 UI는 Registry 관리 기능이며 **임의 패키지를 설치하는 자동 설치기**는 아닙니다.
 5. 실행 중인 Windows Runner와 Docker 컨테이너, Manager는 새 바이너리/소스를 적용하도록 재시작 또는 재배포해야 합니다.
+
+## Codex 등록 설정 가져오기 (개발 단계)
+
+Manager의 **Codex 설정 가져오기** 버튼은 사용자 홈 `.codex/config.toml`에 있는 `mcp_servers` 설정을 읽습니다. 현재 구현은 한 줄 형태의 일반적인 TOML 키/문자열 배열, `mcp_servers.<name>.env` 섹션을 해석합니다. 전체 TOML 규격을 지원하는 파서는 아직 아니므로 다중 행 배열/복잡한 테이블은 후속 개선 사항입니다.
+
+- REA 기존 브리지를 인식하거나, 로컬 HTTP(S 아닌 `http://localhost`·`127.0.0.1`·`host.docker.internal`) 서버를 **비활성 상태**로만 가져옵니다.
+- Codex 설정의 비밀 환경 변수와 임의의 명령줄은 Registry에 복사하지 않습니다.
+- 이미 등록한 ID는 덮어쓰지 않고 건너뜁니다.
+- 새 MCP 활성화와 도구 허용 목록은 사용자가 별도로 설정해야 합니다.
+- 임의 stdio MCP 자동 실행은 **아직 미지원**이며, 서버 단위 실행 승인과 비밀 관리가 구현될 때 확장합니다.
+
+파서 스모크 테스트: `dotnet run --project manager/CodexMcpImporter.Smoke/CodexMcpImporter.Smoke.csproj`.

@@ -43,8 +43,9 @@ internal sealed class McpHubForm : Form
         edit.RowStyles.Add(new RowStyle(SizeType.Percent,100));
         _list.SelectedIndexChanged+=(_,_)=>{if(_list.SelectedItem is not HubEntry e)return;_id.Text=e.Id;_name.Text=e.Name;_url.Text=e.Url??"";_transport.SelectedIndex=e.Transport=="windowsRea"?1:0;_enabled.Checked=e.Enabled;_tools.Text=string.Join(Environment.NewLine,e.AllowedTools);};
         var buttons=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=true,AutoScroll=true};
-        var save=new Button{Text="추가 / 저장",AutoSize=true};var delete=new Button{Text="선택 삭제",AutoSize=true};var reload=new Button{Text="다시 읽기",AutoSize=true};var rea=new Button{Text="REA 자동 설정",AutoSize=true};
-        buttons.Controls.AddRange([save,delete,reload,rea]);
+        var save=new Button{Text="추가 / 저장",AutoSize=true};var delete=new Button{Text="선택 삭제",AutoSize=true};var reload=new Button{Text="다시 읽기",AutoSize=true};var rea=new Button{Text="REA 자동 설정",AutoSize=true};var codex=new Button{Text="Codex 설정 가져오기",AutoSize=true};
+        buttons.Controls.AddRange([save,delete,reload,rea,codex]);
+        codex.Click+=(_,_)=>ImportCodex();
         rea.Click+=(_,_)=>SetReaDefaults();
         save.Click+=(_,_)=>SaveEntry();delete.Click+=(_,_)=>DeleteEntry();reload.Click+=(_,_)=>Reload();
         root.Controls.Add(_list,0,0);root.Controls.Add(edit,1,0);root.Controls.Add(buttons,0,1);root.SetColumnSpan(buttons,2);
@@ -58,6 +59,38 @@ internal sealed class McpHubForm : Form
         _id.Text="rea";_name.Text="Reverse Engineer Anything";_transport.SelectedIndex=1;_url.Text="";
         _tools.Lines=["open_binary","list_documents","current_document","list_segments","list_procedures","list_strings","list_names","search_procedures","search_strings","read_bytes","procedure_info","procedure_pseudo_code","procedure_assembly","procedure_callers","procedure_callees","read_function_instructions","inspect_native_instruction","inspect_native_data_type","inspect_native_load_image","address_to_file_offset","procedure_references"];
         _enabled.Checked=true;
+    }
+    private void ImportCodex()
+    {
+        var file=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),".codex","config.toml");
+        if(!File.Exists(file)){MessageBox.Show(this,"Codex 설정 파일이 없습니다: "+file);return;}
+        try
+        {
+            var found=CodexMcpImporter.Read(File.ReadAllText(file));
+            var imported=0;
+            foreach(var item in found)
+            {
+                var id=item.Name.ToLowerInvariant();
+                if(_registry.Servers.Any(x=>x.Id==id))continue;
+                // Imported stdio servers cannot be launched by the HTTP hub yet.
+                // Recognize the existing REA transport without copying arbitrary env.
+                if(id=="rea" && item.Command is not null && item.Args.Any(x=>x.Contains("rea-agents",StringComparison.OrdinalIgnoreCase)))
+                {
+                    _registry.Servers.Add(new HubEntry {Id="rea",Name="Reverse Engineer Anything",Transport="windowsRea",Enabled=false,AllowedTools=[]});
+                    imported++;
+                }
+                else if(item.Url is not null && Uri.TryCreate(item.Url,UriKind.Absolute,out var uri)
+                    && uri.Scheme=="http" && new[]{"localhost","127.0.0.1","host.docker.internal"}.Contains(uri.Host)
+                    && uri.UserInfo.Length==0 && uri.Query.Length==0 && uri.Fragment.Length==0)
+                {
+                    _registry.Servers.Add(new HubEntry {Id=id,Name=item.Name,Transport="streamableHttp",Url=item.Url,Enabled=false,AllowedTools=[]});
+                    imported++;
+                }
+            }
+            if(imported>0)Persist();
+            MessageBox.Show(this,$"Codex 설정 {found.Count}개 발견, {imported}개를 비활성 상태로 가져왔습니다.\n\n실행 환경과 허용 도구를 확인한 뒤 직접 활성화해 주세요. 미지원 stdio 서버는 건너뛰었습니다.","Codex 설정 가져오기");
+        }
+        catch(Exception ex){MessageBox.Show(this,ex.Message,"Codex 설정 분석 오류");}
     }
     private void SaveEntry()
     {
