@@ -192,3 +192,22 @@ Manager v0.4.1의 **ChatGPT 진단 로그** 버튼은 최근 로그를 읽고 �
 - `server/discover` 400 후 legacy `initialize`/ `tools/list` 200 → 최신 프로토콜 시도 후 호환 fallback이 성공한 경우입니다.
 
 컨테이너 재생성으로 증거가 사라지지 않도록 Windows 호스트 bind mount를 사용합니다.
+
+
+## ChatGPT 공개 Hub 실서버 E2E (2026-10-20)
+
+공식 Everything MCP 1.0.0을 임시 `windowsStdio` 서버로 등록해 실제 ChatGPT 공개 도구에서 종단간 검증했습니다.
+
+경로:
+
+`ChatGPT → LocalWork mcp_* → Windows Runner → stdio MCP → Everything MCP`
+
+허용 도구는 `echo`, `get-sum` 두 개로 제한했고 다음을 확인했습니다.
+
+- `mcp_list_servers`에서 임시 서버 조회 성공
+- `mcp_list_tools`에서 허용 도구 2개만 노출
+- `mcp_call_tool`의 `echo` 성공
+- `mcp_call_tool`의 `get-sum(17,25)` 결과 42
+- 미허용 `longRunningOperation` 호출 거부
+
+검증 후 운영 Registry와 Windows stdio 승인 프로필을 원복했습니다. 반복 검증은 `scripts/windows/EverythingLiveValidationConfig.cjs apply|restore`로 수행할 수 있습니다. Manager GUI의 직접 클릭 등록 E2E는 별도 항목으로 남습니다.

@@ -384,3 +384,14 @@ timeoutMs
 - 기존 Release 빌드는 `%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics\manager-before-v0.4.1-20261020`에 백업했습니다.
 - 배포 직후 Git 작업 트리는 clean 상태였습니다.
 - Manager의 **ChatGPT 진단 로그** 버튼은 코드/빌드/프로세스 배포까지 완료했으며, 사람이 실제 버튼을 클릭하는 GUI 수동 E2E는 아직 별도입니다.
+
+
+### ChatGPT 공개 MCP Hub 실서버 E2E 검증 (2026-10-20)
+
+- ChatGPT의 실제 공개 LocalWork 도구 `mcp_list_servers`, `mcp_list_tools`, `mcp_call_tool`을 사용해 공식 `@modelcontextprotocol/server-everything@1.0.0`을 운영 경로에서 검증했습니다.
+- 검증용 서버는 `everything_test` ID로 임시 등록했고 `echo`, `get-sum` 두 도구만 허용했습니다.
+- ChatGPT → LocalWork 공개 MCP Hub → Windows Runner → Windows stdio → Everything MCP 경로에서 `echo`와 `get-sum(17,25)=42`가 성공했습니다.
+- 미허용 `longRunningOperation` 호출은 `Tool is not approved by the MCP hub allowlist`로 거부되는 것을 확인했습니다.
+- 검증 후 기존 Registry를 복원했고 stdio 승인 프로필 파일도 원래처럼 없는 상태로 돌아온 것을 확인했습니다. REA 활성 상태와 `node_repl` 비활성 초안은 유지됩니다.
+- 재현용 스크립트 `scripts/windows/EverythingLiveValidationConfig.cjs`는 적용 전 Registry/프로필을 진단 폴더에 백업하고 `apply`/ `restore`를 지원합니다. Workspace는 저장소 위치에서 자동 계산하며 사용자 경로를 하드코딩하지 않습니다.
+- 이번 검증은 실제 ChatGPT 공개 Hub 종단간 경로를 확인한 것이며, Manager GUI에서 사용자가 직접 등록·승인 버튼을 클릭하는 수동 UI E2E는 여전히 별도입니다.

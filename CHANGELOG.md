@@ -24,6 +24,7 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 
 ### Verification
 - 운영 컨테이너에서 영속 진단 파일 생성과 `openai-mcp/1.0.0` 요청 기록을 확인했고, diagnostics host bind mount를 검증했습니다. Linux 격리 회귀 테스트 11개 파일 / 51개 테스트 통과, Manager Release 빌드 경고 0 / 오류 0.
+- 실제 ChatGPT 공개 `mcp_list_servers` / `mcp_list_tools` / `mcp_call_tool` 경로에서 Everything MCP 1.0.0의 `echo`, `get-sum(17,25)=42`를 성공시키고 미허용 도구 거부까지 확인했습니다. 검증 후 운영 Registry와 stdio 승인 프로필을 원복했습니다.
 - 커밋 `67c3e72`의 진단 코드가 운영 `workmachine`에 반영된 것을 확인했습니다. Manager v0.4.1을 배포해 새 프로세스 PID 22684로 시작했고, 이전 Release 빌드는 `manager-before-v0.4.1-20261020` 진단 백업 폴더에 보존했습니다. GUI 버튼 직접 클릭 E2E는 별도입니다.
 - 공식 Everything MCP 1.0.0을 대상으로 하는 실제 Windows stdio 검증을 완료했습니다. 직접 stdio에서 `tools/list` 13개 도구를 확인하고 `echo`, `get-sum(17,25)=42` 호출을 통과했습니다. 이어 격리된 Windows Runner 큐와 LocalWork Hub `mcp_list_tools`/`mcp_call_tool`까지 포함한 E2E를 통과했으며, 미허용 도구 거부도 확인했습니다. 운영 Registry는 변경하지 않았습니다.
 
