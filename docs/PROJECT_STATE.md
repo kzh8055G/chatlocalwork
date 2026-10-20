@@ -374,3 +374,13 @@ timeoutMs
 - 실제 운영 컨테이너에서 영속 파일 생성과 `openai-mcp/1.0.0`의 `initialize`, `notifications/initialized`, `tools/call` 기록을 확인했습니다. 호스트 diagnostics bind mount도 확인했습니다.
 - Linux 격리 전체 회귀는 **11개 파일 / 51개 테스트 통과**, LocalWork TypeScript build 통과, Manager Release build는 경고 0 / 오류 0으로 확인했습니다.
 - 작업 중 한 차례 LocalWork 클라이언트 호출이 `Connection failed`로 종료됐지만, 연결 복구 후 확인한 영속 MCP 로그에는 해당 실패 호출에 대응하는 서버 수신 기록이 없었습니다. 따라서 적어도 일부 간헐 실패는 LocalWork의 HTTP request handler에 도달하기 전 연결 계층에서 발생할 가능성이 있습니다. 다음 실패 때 이 로그를 기준으로 OpenAI 요청 도달 여부를 즉시 구분할 수 있습니다.
+
+
+### v0.4.1 운영 배포 확인 (2026-10-20)
+
+- 커밋 `67c3e72`의 LocalWork 진단 코드가 운영 `workmachine`에 반영된 것을 컨테이너 내부 build 산출물에서 확인했습니다.
+- 영속 로그 파일 `%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics\mcp-access\mcp-access.ndjson` 생성과 지속 기록을 확인했습니다.
+- Manager v0.4.1 Release 빌드를 배포하고 기존 Manager를 종료한 뒤 PID 22684로 새 프로세스 시작을 확인했습니다.
+- 기존 Release 빌드는 `%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics\manager-before-v0.4.1-20261020`에 백업했습니다.
+- 배포 직후 Git 작업 트리는 clean 상태였습니다.
+- Manager의 **ChatGPT 진단 로그** 버튼은 코드/빌드/프로세스 배포까지 완료했으며, 사람이 실제 버튼을 클릭하는 GUI 수동 E2E는 아직 별도입니다.
