@@ -63,9 +63,10 @@ internal sealed class McpHubForm : Form
             UpdateTransportFields();
         };
         var buttons=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=true,AutoScroll=true};
-        var save=new Button{Text="추가 / 저장",AutoSize=true};var delete=new Button{Text="선택 삭제",AutoSize=true};var reload=new Button{Text="다시 읽기",AutoSize=true};var rea=new Button{Text="REA 자동 설정",AutoSize=true};var codex=new Button{Text="Codex 설정 가져오기",AutoSize=true};var inspect=new Button{Text="도구 조회...",AutoSize=true};
-        buttons.Controls.AddRange([save,delete,reload,rea,codex,inspect]);
+        var save=new Button{Text="추가 / 저장",AutoSize=true};var delete=new Button{Text="선택 삭제",AutoSize=true};var reload=new Button{Text="다시 읽기",AutoSize=true};var rea=new Button{Text="REA 자동 설정",AutoSize=true};var codex=new Button{Text="Codex 설정 가져오기",AutoSize=true};var inspect=new Button{Text="도구 조회...",AutoSize=true};var verify=new Button{Text="연결 확인...",AutoSize=true};
+        buttons.Controls.AddRange([save,delete,reload,rea,codex,inspect,verify]);
         inspect.Click+=async (_,_)=>await InspectStdioToolsAsync(inspect);
+        verify.Click+=async (_,_)=>await VerifyStdioConnectionAsync(verify);
         codex.Click+=(_,_)=>ImportCodex();
         rea.Click+=(_,_)=>SetReaDefaults();
         save.Click+=(_,_)=>SaveEntry();delete.Click+=(_,_)=>DeleteEntry();reload.Click+=(_,_)=>Reload();
@@ -126,6 +127,45 @@ internal sealed class McpHubForm : Form
         }
         catch(Exception ex){MessageBox.Show(this,ex.Message,"Codex 설정 분석 오류");}
     }
+    private async Task VerifyStdioConnectionAsync(Button button)
+    {
+        if(_transport.SelectedIndex!=2) {MessageBox.Show(this,"Windows stdio MCP 유형에서 사용하세요.");return;}
+        var command=_command.Text.Trim();var cwd=_cwd.Text.Trim();
+        var args=_args.Lines.Where(x=>!string.IsNullOrWhiteSpace(x)).ToArray();
+        var envNames=_envNames.Lines.Select(x=>x.Trim()).Where(x=>x.Length>0).Distinct().ToArray();
+        var allowed=_tools.Lines.Select(x=>x.Trim()).Where(x=>x.Length>0).Distinct().ToArray();
+        var root=Path.GetFullPath(_workspaceRoot).TrimEnd(Path.DirectorySeparatorChar);
+        if(!Directory.Exists(cwd) || !(Path.GetFullPath(cwd).Equals(root,StringComparison.OrdinalIgnoreCase)
+           || Path.GetFullPath(cwd).StartsWith(root+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)))
+        {MessageBox.Show(this,"작업 폴더는 Workspace 내부여야 합니다.");return;}
+
+        var detail=$"실행 파일: {command}\n인수: {string.Join(" ",args)}\n작업 폴더: {cwd}\n환경 변수 이름: {string.Join(", ",envNames)}\n허용 도구: {(allowed.Length==0?"(없음)":string.Join(", ",allowed))}\n\n연결 확인을 위해 initialize와 tools/list만 실행합니다. 실제 도구 호출이나 승인 저장은 하지 않습니다. 실행하시겠습니까?";
+        if(MessageBox.Show(this,detail,"MCP 연결 확인",MessageBoxButtons.YesNo,MessageBoxIcon.Information)!=DialogResult.Yes)return;
+
+        button.Enabled=false;
+        try
+        {
+            var result=await McpStdioInspector.VerifyAllowedToolsAsync(command,args,cwd,envNames,allowed,CancellationToken.None);
+            if(result.MissingAllowedTools.Count>0)
+            {
+                var missing=string.Join(Environment.NewLine,result.MissingAllowedTools.Take(30));
+                if(result.MissingAllowedTools.Count>30)missing+=$"{Environment.NewLine}... 외 {result.MissingAllowedTools.Count-30}개";
+                MessageBox.Show(this,$"MCP 서버 연결에는 성공했지만 현재 허용 도구 중 서버에 없는 항목이 있습니다.\n\n조회 도구: {result.DiscoveredTools.Count}개\n누락 도구: {result.MissingAllowedTools.Count}개\n\n{missing}","MCP 연결 확인",MessageBoxButtons.OK,MessageBoxIcon.Warning);
+                return;
+            }
+
+            var allowedSummary=allowed.Length==0
+                ?"현재 허용 도구는 지정하지 않았습니다."
+                :$"현재 허용 도구 {allowed.Length}개가 모두 서버에 존재합니다.";
+            MessageBox.Show(this,$"MCP 서버 연결에 성공했습니다.\n\n조회 도구: {result.DiscoveredTools.Count}개\n{allowedSummary}\n\n실제 tools/call은 수행하지 않았습니다.","MCP 연결 확인",MessageBoxButtons.OK,MessageBoxIcon.Information);
+        }
+        catch(Exception ex)
+        {
+            MessageBox.Show(this,ex.Message,"MCP 연결 확인 실패",MessageBoxButtons.OK,MessageBoxIcon.Error);
+        }
+        finally {button.Enabled=true;}
+    }
+
     private async Task InspectStdioToolsAsync(Button button)
     {
         if(_transport.SelectedIndex!=2) {MessageBox.Show(this,"Windows stdio MCP 유형에서 사용하세요.");return;}

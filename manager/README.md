@@ -43,6 +43,8 @@ Manager는 자체적으로 MCP 로직을 구현하지 않고 검증된 lifecycle
 - 종료 시 ChatLocalWork가 실행 중이면 StopMCP 자동 실행
 - 자동 Stop 실패 시 `다시 시도 / Manager만 종료 / 취소` 선택 제공
 - ChatLocalWork 앱 폴더 열기
+- Windows stdio MCP `도구 조회...`로 `initialize`/`tools/list`만 실행해 허용 도구 후보 확인
+- Windows stdio MCP `연결 확인...`으로 현재 허용 도구가 실제 서버 도구 목록에 모두 존재하는지 저장 전 검증
 
 ## 사용 스크립트
 

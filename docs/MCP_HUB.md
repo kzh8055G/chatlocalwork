@@ -1,4 +1,4 @@
-# ChatLocalWork MCP Hub (v0.4.1)
+# ChatLocalWork MCP Hub (v0.4.2)
 
 ## 목적
 
@@ -211,3 +211,18 @@ Manager v0.4.1의 **ChatGPT 진단 로그** 버튼은 최근 로그를 읽고 �
 - 미허용 `longRunningOperation` 호출 거부
 
 검증 후 운영 Registry와 Windows stdio 승인 프로필을 원복했습니다. 반복 검증은 `scripts/windows/EverythingLiveValidationConfig.cjs apply|restore`로 수행할 수 있습니다. Manager GUI의 직접 클릭 등록 E2E는 별도 항목으로 남습니다.
+
+
+## Windows stdio MCP 연결 확인 (v0.4.2)
+
+Manager의 **MCP 서버 관리** 화면에서 Windows stdio MCP 설정을 입력한 뒤 **연결 확인...**을 누르면, 해당 실행 파일을 한 번 시작해 `initialize`와 `tools/list`까지만 수행합니다.
+
+이 검증은 현재 편집 화면의 허용 도구 목록과 실제 서버가 공개한 도구 이름을 대조합니다.
+
+- 모두 존재하면 연결 성공과 조회 도구 수를 표시합니다.
+- 서버에 없는 허용 도구가 있으면 누락 도구 목록을 경고로 표시합니다.
+- 실제 `tools/call`은 수행하지 않습니다.
+- 조회만으로 Windows stdio 실행 프로필을 승인하거나 Registry를 저장하지 않습니다.
+- 따라서 `도구 조회...`는 허용 도구 선택용, `연결 확인...`은 현재 설정의 일치 여부 확인용으로 역할이 분리됩니다.
+
+`McpStdioInspector.Smoke`에서 mock MCP의 `ping` 허용 검증과 존재하지 않는 `missing-tool` 검출을 확인했습니다. 추가로 공식 Everything MCP 1.0.0을 실제 Windows stdio 프로세스로 실행해 13개 도구를 조회하고 `echo`/`get-sum` 존재 확인과 `missing-tool` 누락 검출까지 통과했습니다.

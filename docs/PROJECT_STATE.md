@@ -395,3 +395,14 @@ timeoutMs
 - 검증 후 기존 Registry를 복원했고 stdio 승인 프로필 파일도 원래처럼 없는 상태로 돌아온 것을 확인했습니다. REA 활성 상태와 `node_repl` 비활성 초안은 유지됩니다.
 - 재현용 스크립트 `scripts/windows/EverythingLiveValidationConfig.cjs`는 적용 전 Registry/프로필을 진단 폴더에 백업하고 `apply`/ `restore`를 지원합니다. Workspace는 저장소 위치에서 자동 계산하며 사용자 경로를 하드코딩하지 않습니다.
 - 이번 검증은 실제 ChatGPT 공개 Hub 종단간 경로를 확인한 것이며, Manager GUI에서 사용자가 직접 등록·승인 버튼을 클릭하는 수동 UI E2E는 여전히 별도입니다.
+
+
+### Windows stdio MCP 연결 확인 v0.4.2 (2026-10-20)
+
+- Manager의 MCP 서버 관리 화면에 **연결 확인...**을 추가했습니다.
+- 현재 실행 파일·인수·작업 폴더·환경 변수 이름으로 MCP를 시작한 뒤 `initialize`와 `tools/list`만 수행하고, 편집 화면의 허용 도구가 실제 서버에 모두 존재하는지 검사합니다.
+- 연결 확인은 `tools/call`, Registry 저장, stdio 승인 프로필 저장을 수행하지 않습니다.
+- 기존 **도구 조회...**는 도구 탐색·선택, 새 **연결 확인...**은 저장 전 구성 검증으로 역할을 분리했습니다.
+- `McpStdioInspector.Smoke`에서 `ping` 검증 성공과 `missing-tool` 누락 검출을 확인했습니다. 공식 Everything MCP 1.0.0에서도 13개 도구 조회, `echo`/`get-sum` 존재 확인, `missing-tool` 누락 검출을 통과했습니다.
+- Manager v0.4.2 Release 빌드는 경고 0 / 오류 0이며, 이전 v0.4.1 Release를 `%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics\manager-before-v0.4.2-20261020`에 백업한 뒤 새 Manager PID 35048로 시작했습니다.
+- 실제 GUI에서 사용자가 Everything MCP를 입력하고 버튼을 직접 누르는 수동 UI E2E는 아직 남아 있습니다.

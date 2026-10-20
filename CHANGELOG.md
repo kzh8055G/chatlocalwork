@@ -8,6 +8,17 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 
 아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
 
+## [0.4.2] - 2026-10-20
+
+### Added
+- Manager의 Windows stdio MCP 편집 화면에 **연결 확인...** 버튼을 추가했습니다. 현재 실행 설정으로 `initialize`와 `tools/list`만 수행하고, 입력된 허용 도구가 실제 서버 목록에 모두 존재하는지 대조합니다.
+- 연결 확인은 실제 `tools/call`이나 실행 승인 저장을 수행하지 않으며, 서버에 없는 허용 도구는 누락 목록으로 표시합니다.
+
+### Verification
+- `McpStdioInspector.Smoke`에서 존재하는 허용 도구 검증과 누락 도구 검출을 모두 확인했습니다.
+- 공식 Everything MCP 1.0.0을 Manager inspector 경로로 직접 실행해 13개 도구 조회, `echo`/`get-sum` 존재 확인, `missing-tool` 누락 검출을 통과했습니다.
+- Manager v0.4.2 Release 빌드 경고 0 / 오류 0, 새 Manager 프로세스 PID 35048 시작을 확인했습니다. 이전 Release는 `manager-before-v0.4.2-20261020` 진단 백업 폴더에 보존했습니다.
+
 ## [0.4.1] - 2026-10-20
 
 ### Added

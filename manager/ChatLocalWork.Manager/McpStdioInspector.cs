@@ -7,6 +7,28 @@ namespace ChatLocalWork.Manager;
 // Only initialize and tools/list. Never invokes tools/call or persists approval.
 internal static class McpStdioInspector
 {
+    internal sealed record VerificationResult(
+        IReadOnlyList<string> DiscoveredTools,
+        IReadOnlyList<string> MissingAllowedTools);
+
+    internal static async Task<VerificationResult> VerifyAllowedToolsAsync(
+        string executable,
+        IReadOnlyList<string> args,
+        string workdir,
+        IReadOnlyList<string> envNames,
+        IReadOnlyList<string> allowedTools,
+        CancellationToken token)
+    {
+        var discovered = await ListToolsAsync(executable, args, workdir, envNames, token);
+        var available = new HashSet<string>(discovered, StringComparer.Ordinal);
+        var missing = allowedTools
+            .Where(name => !available.Contains(name))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+        return new VerificationResult(discovered, missing);
+    }
+
     internal static async Task<IReadOnlyList<string>> ListToolsAsync(string executable,
         IReadOnlyList<string> args, string workdir, IReadOnlyList<string> envNames, CancellationToken token)
     {
@@ -57,7 +79,7 @@ internal static class McpStdioInspector
                     return result.Clone();
                 }
             }
-            var hello = await RequestAsync("initialize", new { protocolVersion = "2025-06-18", capabilities = new { }, clientInfo = new { name = "chatlocalwork-manager-inspector", version = "0.4.1" } });
+            var hello = await RequestAsync("initialize", new { protocolVersion = "2025-06-18", capabilities = new { }, clientInfo = new { name = "chatlocalwork-manager-inspector", version = "0.4.2" } });
             if (!hello.TryGetProperty("serverInfo", out _)) throw new InvalidDataException("MCP 초기화 응답 오류");
             await process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(new { jsonrpc = "2.0", method = "notifications/initialized" }).AsMemory(), limit.Token);
             await process.StandardInput.FlushAsync(limit.Token);
