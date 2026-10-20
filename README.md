@@ -223,6 +223,7 @@ scripts\windows\StopMCP.bat
 - Codex 가져오기: **소스 구현 및 Manager Release 빌드·파서 스모크 테스트 완료**. Manager v0.3.0에 배포 완료. 버튼 클릭을 포함한 수동 UI E2E 검증은 별도
 - Windows stdio MCP는 Manager에서 서버별 `.exe` 실행 설정과 허용 도구를 직접 승인한 경우 지원. Codex 설정의 자동 실행·환경 비밀값 가져오기는 미지원
 - Manager v0.4.0의 `도구 조회...`에서 실행을 별도로 승인한 후 MCP 도구 목록을 확인하고 직접 선택 가능. 실제 도구 호출은 승인·저장 이후에만 가능
+- Manager v0.4.1의 `ChatGPT 진단 로그`에서 OpenAI의 MCP/OAuth 요청이 실제 LocalWork까지 도달했는지 시간·경로·RPC·프로토콜 버전·HTTP 상태로 확인 가능. 로그는 `%LOCALAPPDATA%\\ChatLocalWork\\runtime\\diagnostics\\mcp-access\\mcp-access.ndjson`에 영속 저장
 - 공식 Everything MCP 1.0.0으로 직접 stdio → Windows Runner 큐 → LocalWork Hub `mcp_call_tool`까지 격리 E2E 검증 완료. 운영 Registry는 변경하지 않음
 - 복잡한 TOML 전체 규격, OAuth가 필요한 외부 HTTP MCP는 현재 미지원
 

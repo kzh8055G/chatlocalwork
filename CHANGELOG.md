@@ -8,12 +8,22 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 
 아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
 
+## [0.4.1] - 2026-10-20
+
+### Added
+- ChatGPT의 MCP/OAuth 요청 도달 여부를 컨테이너 재생성 후에도 추적할 수 있도록 `%LOCALAPPDATA%\\ChatLocalWork\\runtime\\diagnostics\\mcp-access\\mcp-access.ndjson` 영속 진단 로그를 추가했습니다.
+- Manager에 **ChatGPT 진단 로그** 버튼을 추가해 최근 요청의 시간, path, RPC method, protocol version, User-Agent, HTTP status를 확인할 수 있게 했습니다.
+
+### Security
+- 진단 로그에는 Authorization 헤더, access/refresh token, OAuth code, 도구 arguments 및 요청 본문을 저장하지 않습니다.
+
 ### Changed
 - 안전 검사 오탐을 줄이기 위해 파일 편집·Git·런타임 진단을 분리하는 작업 규칙을 루트 `AGENTS.md`에 추가했습니다.
 - `scripts/windows/InspectRuntimeState.cjs`를 추가해 실행 경로·인수·환경 변수 값·비밀값을 출력하지 않고 Registry, stdio 승인 프로필, Windows Runner 상태만 확인하도록 했습니다.
 - Windows `core.autocrlf=true`와 Docker/Linux 편집이 충돌해 다수 파일이 가짜 수정으로 표시되는 문제를 막기 위해 저장소 텍스트 줄바꿈을 `.gitattributes`에서 LF로 고정했습니다.
 
 ### Verification
+- 운영 컨테이너에서 영속 진단 파일 생성과 `openai-mcp/1.0.0` 요청 기록을 확인했고, diagnostics host bind mount를 검증했습니다. Linux 격리 회귀 테스트 11개 파일 / 51개 테스트 통과, Manager Release 빌드 경고 0 / 오류 0.
 - 공식 Everything MCP 1.0.0을 대상으로 하는 실제 Windows stdio 검증을 완료했습니다. 직접 stdio에서 `tools/list` 13개 도구를 확인하고 `echo`, `get-sum(17,25)=42` 호출을 통과했습니다. 이어 격리된 Windows Runner 큐와 LocalWork Hub `mcp_list_tools`/`mcp_call_tool`까지 포함한 E2E를 통과했으며, 미허용 도구 거부도 확인했습니다. 운영 Registry는 변경하지 않았습니다.
 
 ## [0.4.0] - 2026-10-19

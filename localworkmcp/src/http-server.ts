@@ -11,6 +11,7 @@ import express, { type Request, type Response } from "express";
 
 import { createBearerAuth, createHostValidation } from "./auth.js";
 import type { AppConfig } from "./config.js";
+import { McpDiagnosticLogger } from "./diagnostic-log.js";
 import { errorMessage } from "./errors.js";
 import { createMcpServer, type McpServices } from "./mcp-server.js";
 import { OAUTH_SCOPES, RemoteDevOAuthProvider } from "./oauth.js";
@@ -52,6 +53,28 @@ function rpcToolName(body: unknown): string | undefined {
   return typeof name === "string" ? name : undefined;
 }
 
+function rpcProtocolVersion(body: unknown): string | undefined {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return undefined;
+  }
+  const params = (body as { params?: unknown }).params;
+  if (!params || typeof params !== "object" || Array.isArray(params)) {
+    return undefined;
+  }
+  const version = (params as { protocolVersion?: unknown }).protocolVersion;
+  return typeof version === "string" ? version : undefined;
+}
+
+function shouldPersistDiagnostic(pathname: string, endpoint: string): boolean {
+  return pathname === endpoint
+    || pathname === "/token"
+    || pathname === "/authorize"
+    || pathname === "/register"
+    || pathname === "/revoke"
+    || pathname.startsWith("/.well-known/oauth-")
+    || pathname === "/.well-known/openid-configuration";
+}
+
 export async function startHttpServer(
   config: AppConfig,
   services: McpServices,
@@ -61,33 +84,53 @@ export async function startHttpServer(
   if (config.trustProxyHops > 0) {
     app.set("trust proxy", config.trustProxyHops);
   }
+  const diagnosticLogger = new McpDiagnosticLogger(config.diagnosticLogFile);
   app.use((request, response, next) => {
-    if (request.path !== config.endpoint) {
+    const requestPath = request.path;
+    const userAgent = request.header("user-agent") || undefined;
+    const headerProtocolVersion = request.header("mcp-protocol-version") || undefined;
+    const isMcpRequest = requestPath === config.endpoint;
+    const persistDiagnostic = shouldPersistDiagnostic(requestPath, config.endpoint);
+    if (!isMcpRequest && !persistDiagnostic) {
       next();
       return;
     }
+
     const requestId = randomUUID();
     const startedAt = performance.now();
     let logged = false;
     response.set("X-Request-Id", requestId);
+
     const logCompletion = (outcome: "completed" | "aborted") => {
       if (logged) {
         return;
       }
       logged = true;
-      console.log(
-        JSON.stringify({
-          event: "mcp_request",
-          requestId,
-          httpMethod: request.method,
-          rpcMethod: rpcMethod(request.body),
-          toolName: rpcToolName(request.body),
-          status: response.statusCode,
-          outcome,
-          durationMs: Math.round((performance.now() - startedAt) * 10) / 10,
-        }),
-      );
+
+      const durationMs = Math.round((performance.now() - startedAt) * 10) / 10;
+      const protocolVersion = headerProtocolVersion || rpcProtocolVersion(request.body);
+      const event = {
+        timestamp: new Date().toISOString(),
+        requestId,
+        httpMethod: request.method,
+        path: requestPath,
+        rpcMethod: rpcMethod(request.body),
+        toolName: rpcToolName(request.body),
+        protocolVersion: protocolVersion || undefined,
+        userAgent,
+        status: response.statusCode,
+        outcome,
+        durationMs,
+      };
+
+      if (isMcpRequest) {
+        console.log(JSON.stringify({ event: "mcp_request", ...event }));
+      }
+      if (persistDiagnostic) {
+        diagnosticLogger.write(event);
+      }
     };
+
     response.once("finish", () => logCompletion("completed"));
     response.once("close", () => {
       if (!response.writableEnded) {

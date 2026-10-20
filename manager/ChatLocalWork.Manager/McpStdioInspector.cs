@@ -57,7 +57,7 @@ internal static class McpStdioInspector
                     return result.Clone();
                 }
             }
-            var hello = await RequestAsync("initialize", new { protocolVersion = "2025-06-18", capabilities = new { }, clientInfo = new { name = "chatlocalwork-manager-inspector", version = "0.4.0" } });
+            var hello = await RequestAsync("initialize", new { protocolVersion = "2025-06-18", capabilities = new { }, clientInfo = new { name = "chatlocalwork-manager-inspector", version = "0.4.1" } });
             if (!hello.TryGetProperty("serverInfo", out _)) throw new InvalidDataException("MCP 초기화 응답 오류");
             await process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(new { jsonrpc = "2.0", method = "notifications/initialized" }).AsMemory(), limit.Token);
             await process.StandardInput.FlushAsync(limit.Token);

@@ -22,6 +22,7 @@ services:
       MCP_AUTH_TOKEN: "${MCP_AUTH_TOKEN:-}"
       WINDOWS_RUNNER_QUEUE_DIR: "${WINDOWS_RUNNER_CONTAINER_DIR:-/chatlocalwork-runtime/windows-runner}"
       WINDOWS_RUNNER_TIMEOUT_MS: "${WINDOWS_RUNNER_TIMEOUT_MS:-120000}"
+      MCP_DIAGNOSTIC_LOG_FILE: "/chatlocalwork-diagnostics/mcp-access.ndjson"
     volumes:
       - type: bind
         source: "${SHARED_PATH:?Set SHARED_PATH in .env}"
@@ -33,6 +34,9 @@ services:
         source: "${CHATLOCALWORK_CONFIG_HOST_DIR:?Set CHATLOCALWORK_CONFIG_HOST_DIR}"
         target: /chatlocalwork-config
         read_only: true
+      - type: bind
+        source: "${CHATLOCALWORK_DIAGNOSTICS_HOST_DIR:?Set CHATLOCALWORK_DIAGNOSTICS_HOST_DIR}"
+        target: /chatlocalwork-diagnostics
       - type: volume
         source: cokacremote-state
         target: /var/lib/cokacremote

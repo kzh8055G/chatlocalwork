@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace ChatLocalWork.Manager;
 
@@ -31,6 +32,7 @@ internal sealed class MainForm : Form
     private readonly Button _mcpHubButton = new() { Text = "MCP 서버 관리...", AutoSize = true };
     private readonly Button _environmentSettingsButton = new() { Text = "환경 설정...", AutoSize = true };
     private readonly Button _loadLogButton = new() { Text = "Runner 로그", AutoSize = true };
+    private readonly Button _mcpDiagnosticsButton = new() { Text = "ChatGPT 진단 로그", AutoSize = true };
     private readonly Button _openRepositoryButton = new() { Text = "앱 폴더", AutoSize = true };
     private readonly Button _clearLogButton = new() { Text = "로그 지우기", AutoSize = true };
     private readonly CheckBox _stopMcpOnExitCheckBox = new()
@@ -120,6 +122,7 @@ internal sealed class MainForm : Form
         _mcpHubButton.Click += (_, _) => { using var form = new McpHubForm(_paths.ChatLocalWorkDataDirectory, _paths.WorkspaceRoot); form.ShowDialog(this); };
         _environmentSettingsButton.Click += async (_, _) => await OpenEnvironmentSettingsAsync();
         _loadLogButton.Click += (_, _) => LoadRunnerLog();
+        _mcpDiagnosticsButton.Click += (_, _) => LoadMcpDiagnosticLog();
         _openRepositoryButton.Click += (_, _) => OpenRepository();
         _clearLogButton.Click += (_, _) => _logBox.Clear();
         _stopMcpOnExitCheckBox.CheckedChanged += (_, _) => SaveManagerSettings();
@@ -242,6 +245,7 @@ internal sealed class MainForm : Form
                      _environmentSettingsButton,
                      _mcpHubButton,
                      _loadLogButton,
+                     _mcpDiagnosticsButton,
                      _openRepositoryButton,
                      _clearLogButton,
                  })
@@ -741,6 +745,108 @@ internal sealed class MainForm : Form
         }
     }
 
+    private void LoadMcpDiagnosticLog()
+    {
+        var file = _paths.McpDiagnosticLogFile;
+        if (!File.Exists(file))
+        {
+            AppendManagerLog($"ChatGPT 진단 로그가 아직 없습니다. · {file}");
+            AppendManagerLog("도구 새로 고침 후 다시 확인하세요.");
+            return;
+        }
+
+        AppendLog(string.Empty);
+        AppendLog($"----- ChatGPT MCP 진단 · {file} -----");
+
+        try
+        {
+            var text = ReadTail(file, 128 * 1024);
+            var lines = text
+                .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
+                .TakeLast(80)
+                .ToArray();
+
+            DateTimeOffset? latestOpenAiAt = null;
+            string? latestOpenAiSummary = null;
+
+            foreach (var line in lines)
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(line);
+                    var root = document.RootElement;
+                    var timestampText = root.TryGetProperty("timestamp", out var timestampElement)
+                        ? timestampElement.GetString()
+                        : null;
+                    var timestamp = DateTimeOffset.TryParse(timestampText, out var parsedTimestamp)
+                        ? parsedTimestamp.ToLocalTime()
+                        : (DateTimeOffset?)null;
+                    var method = root.TryGetProperty("httpMethod", out var methodElement)
+                        ? methodElement.GetString()
+                        : "?";
+                    var path = root.TryGetProperty("path", out var pathElement)
+                        ? pathElement.GetString()
+                        : "?";
+                    var rpc = root.TryGetProperty("rpcMethod", out var rpcElement)
+                        ? rpcElement.GetString()
+                        : null;
+                    var protocol = root.TryGetProperty("protocolVersion", out var protocolElement)
+                        ? protocolElement.GetString()
+                        : null;
+                    var userAgent = root.TryGetProperty("userAgent", out var userAgentElement)
+                        ? userAgentElement.GetString()
+                        : null;
+                    var status = root.TryGetProperty("status", out var statusElement) &&
+                                 statusElement.TryGetInt32(out var parsedStatus)
+                        ? parsedStatus
+                        : 0;
+
+                    var displayTime = timestamp?.ToString("yyyy-MM-dd HH:mm:ss") ?? "?";
+                    var detail = $"{displayTime} · {method} {path} · HTTP {status}";
+                    if (!string.IsNullOrWhiteSpace(rpc))
+                    {
+                        detail += $" · RPC {rpc}";
+                    }
+                    if (!string.IsNullOrWhiteSpace(protocol))
+                    {
+                        detail += $" · MCP {protocol}";
+                    }
+                    if (!string.IsNullOrWhiteSpace(userAgent))
+                    {
+                        detail += $" · {userAgent}";
+                    }
+                    AppendLog(detail);
+
+                    var isOpenAi = userAgent?.Contains("openai", StringComparison.OrdinalIgnoreCase) == true;
+                    if (isOpenAi && timestamp is not null &&
+                        (latestOpenAiAt is null || timestamp > latestOpenAiAt))
+                    {
+                        latestOpenAiAt = timestamp;
+                        latestOpenAiSummary = detail;
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Ignore a partial final line if the file was being appended while read.
+                }
+            }
+
+            AppendLog(string.Empty);
+            if (latestOpenAiSummary is null)
+            {
+                AppendManagerLog("최근 진단 로그에서 OpenAI 요청을 찾지 못했습니다.");
+            }
+            else
+            {
+                AppendManagerLog($"마지막 OpenAI 요청 · {latestOpenAiSummary}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendManagerLog($"ChatGPT 진단 로그 읽기 실패 · {ex.Message}");
+        }
+    }
+
     private static string ReadTail(string path, int maxBytes)
     {
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -813,6 +919,7 @@ internal sealed class MainForm : Form
         _refreshButton.Enabled = !busy;
         _environmentSettingsButton.Enabled = !busy;
         _loadLogButton.Enabled = !busy;
+        _mcpDiagnosticsButton.Enabled = !busy;
 
         _startButton.Text = busy && operation == "START" ? "Starting..." : "Start MCP";
         _stopButton.Text = busy && operation == "STOP" ? "Stopping..." : "Stop MCP";

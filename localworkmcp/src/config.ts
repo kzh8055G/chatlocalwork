@@ -28,6 +28,7 @@ export interface AppConfig {
   maxEditFileBytes: number;
   windowsRunnerQueueDir: string;
   windowsRunnerTimeoutMs: number;
+  diagnosticLogFile: string | undefined;
 }
 
 function parseBoolean(value: string | undefined, fallback: boolean): boolean {
@@ -227,5 +228,8 @@ export function loadConfig(
       1_000,
       60 * 60 * 1000,
     ),
+    diagnosticLogFile: env.MCP_DIAGNOSTIC_LOG_FILE?.trim()
+      ? path.resolve(env.MCP_DIAGNOSTIC_LOG_FILE.trim())
+      : undefined,
   };
 }

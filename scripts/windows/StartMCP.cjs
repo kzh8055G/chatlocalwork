@@ -24,6 +24,7 @@ if (!localAppData) throw new Error("LOCALAPPDATA is not available.");
 const runnerQueueDir = path.join(localAppData, "ChatLocalWork", "runtime", "windows-runner");
 const runnerContainerQueueDir = "/chatlocalwork-runtime/windows-runner";
 const runnerReadyFile = path.join(runnerQueueDir, "state", "ready.json");
+const diagnosticsDir = path.join(localAppData, "ChatLocalWork", "runtime", "diagnostics", "mcp-access");
 const startStateFile = path.join(localAppData, "ChatLocalWork", "runtime", "start-state.json");
 const nodeExe = process.execPath;
 let rollbackOnFailure = false;
@@ -608,6 +609,7 @@ async function main() {
 
   step("workmachine build / start");
   console.log(`Source         : ${mcpRoot}`);
+  fs.mkdirSync(diagnosticsDir, { recursive: true });
 
   let p = run("docker.exe", [
     "compose", "--env-file", envFile,
@@ -622,6 +624,7 @@ async function main() {
       SHARED_PATH: workspaceRoot,
       WINDOWS_RUNNER_HOST_DIR: runnerQueueDir,
       CHATLOCALWORK_CONFIG_HOST_DIR: path.join(path.dirname(path.dirname(runnerQueueDir)), "config"),
+      CHATLOCALWORK_DIAGNOSTICS_HOST_DIR: diagnosticsDir,
       WINDOWS_RUNNER_CONTAINER_DIR: runnerContainerQueueDir,
     },
   });

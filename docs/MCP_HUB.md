@@ -1,4 +1,4 @@
-# ChatLocalWork MCP Hub (v0.3.0)
+# ChatLocalWork MCP Hub (v0.4.1)
 
 ## 목적
 
@@ -169,3 +169,26 @@ Manager의 **Codex 설정 가져오기** 버튼은 사용자 홈 `.codex/config.
 - `windows-runner/everything-localwork-hub.e2e.mjs`
 
 따라서 v0.4.0 기준으로 범용 Windows stdio MCP의 핵심 중계 경로는 실제 외부 MCP 서버까지 검증된 상태입니다. 남은 운영 과제는 Manager GUI에서 실제 서버를 사용자가 등록·승인하는 수동 E2E와 설치/업데이트 lifecycle 자동화입니다.
+
+
+## ChatGPT 도구 새로 고침 진단 (v0.4.1)
+
+간헐적인 `앱을 업데이트할 수 없습니다. 다시 시도하세요` 문제를 추적하기 위해 ChatGPT-facing MCP/OAuth 요청을 영속 NDJSON으로 기록합니다.
+
+호스트 로그:
+
+`%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics\mcp-access\mcp-access.ndjson`
+
+Docker 경로:
+
+`/chatlocalwork-diagnostics/mcp-access.ndjson`
+
+기록하는 값은 요청 시각, request ID, HTTP method/path, MCP RPC method, tool name, protocol version, User-Agent, HTTP status, duration, outcome입니다. 인증 헤더·토큰·OAuth code·도구 arguments·요청 본문은 저장하지 않습니다.
+
+Manager v0.4.1의 **ChatGPT 진단 로그** 버튼은 최근 로그를 읽고 마지막 OpenAI 요청을 요약합니다. 따라서 사용자가 `도구 새로 고침`을 누른 직후 다음과 같이 판별할 수 있습니다.
+
+- `openai-mcp` / OAuth 요청이 기록됨 → OpenAI 요청이 LocalWork까지 도달. status와 RPC 단계에서 서버/프로토콜/OAuth 문제를 추적합니다.
+- 해당 시각에 요청 기록이 없음 → 요청이 LocalWork HTTP handler까지 오지 않았으므로 ChatGPT/OpenAI backend, 네트워크, Funnel 등 앞단을 우선 조사합니다.
+- `server/discover` 400 후 legacy `initialize`/ `tools/list` 200 → 최신 프로토콜 시도 후 호환 fallback이 성공한 경우입니다.
+
+컨테이너 재생성으로 증거가 사라지지 않도록 Windows 호스트 bind mount를 사용합니다.

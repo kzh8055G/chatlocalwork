@@ -38,6 +38,8 @@ internal sealed class AppPaths
         RunnerReadyFile = Path.Combine(RunnerQueueDirectory, "state", "ready.json");
         RunnerLogFile = Path.Combine(RunnerQueueDirectory, "logs", "runner.log");
         LauncherLogFile = Path.Combine(RunnerQueueDirectory, "logs", "launcher.log");
+        DiagnosticsDirectory = Path.Combine(ChatLocalWorkDataDirectory, "runtime", "diagnostics", "mcp-access");
+        McpDiagnosticLogFile = Path.Combine(DiagnosticsDirectory, "mcp-access.ndjson");
         InstalledLayout = installedLayout;
     }
 
@@ -57,6 +59,8 @@ internal sealed class AppPaths
     public string RunnerReadyFile { get; }
     public string RunnerLogFile { get; }
     public string LauncherLogFile { get; }
+    public string DiagnosticsDirectory { get; }
+    public string McpDiagnosticLogFile { get; }
     public bool InstalledLayout { get; }
 
     public static AppPaths Discover()

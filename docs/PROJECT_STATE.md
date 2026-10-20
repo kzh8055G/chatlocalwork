@@ -362,3 +362,15 @@ timeoutMs
 - Windows 전역 Git 설정이 `core.autocrlf=true`인 상태에서 Docker/Linux 도구가 LF로 파일을 기록하면, 실제 내용 diff가 없어도 Windows Git이 수십 개 파일을 수정으로 표시하는 현상을 확인했습니다.
 - 루트 `.gitattributes`에 `* text=auto eol=lf`를 추가해 추적 텍스트 파일의 작업 트리 줄바꿈을 LF로 고정했습니다. 기존 Dockerfile/쉘 스크립트 LF 정책도 유지합니다.
 - 목적은 Windows/컨테이너 양쪽에서 같은 파일을 편집해도 불필요한 CRLF↔LF 변환이 반복되지 않게 하는 것입니다.
+
+
+### ChatGPT 도구 새로 고침 영속 진단 v0.4.1 (2026-10-20)
+
+- 간헐적으로 발생하는 ChatGPT의 `도구 새로 고침` 실패를 사후 분석할 수 있도록 MCP/OAuth 접근 진단을 영속화했습니다.
+- Docker의 `/chatlocalwork-diagnostics/mcp-access.ndjson`를 Windows 호스트의 `%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics\mcp-access\mcp-access.ndjson`에 bind mount합니다. 컨테이너를 재생성해도 로그가 유지됩니다.
+- 기록 항목은 시간, 요청 ID, HTTP method/path, MCP RPC method, 도구 이름, MCP protocol version, User-Agent, HTTP status, 처리 시간, 완료/중단 여부입니다. Authorization 헤더, access/refresh token, OAuth code, 도구 arguments 및 요청 본문은 기록하지 않습니다.
+- Manager v0.4.1에 **ChatGPT 진단 로그** 버튼을 추가했습니다. 최근 영속 로그를 읽어 로컬 시간 기준으로 표시하고 마지막 `openai-*` User-Agent 요청을 요약합니다.
+- 로그는 8 MiB에 도달하면 `.1` 파일로 best-effort 회전합니다.
+- 실제 운영 컨테이너에서 영속 파일 생성과 `openai-mcp/1.0.0`의 `initialize`, `notifications/initialized`, `tools/call` 기록을 확인했습니다. 호스트 diagnostics bind mount도 확인했습니다.
+- Linux 격리 전체 회귀는 **11개 파일 / 51개 테스트 통과**, LocalWork TypeScript build 통과, Manager Release build는 경고 0 / 오류 0으로 확인했습니다.
+- 작업 중 한 차례 LocalWork 클라이언트 호출이 `Connection failed`로 종료됐지만, 연결 복구 후 확인한 영속 MCP 로그에는 해당 실패 호출에 대응하는 서버 수신 기록이 없었습니다. 따라서 적어도 일부 간헐 실패는 LocalWork의 HTTP request handler에 도달하기 전 연결 계층에서 발생할 가능성이 있습니다. 다음 실패 때 이 로그를 기준으로 OpenAI 요청 도달 여부를 즉시 구분할 수 있습니다.
