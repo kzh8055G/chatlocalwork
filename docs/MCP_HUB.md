@@ -1,4 +1,4 @@
-# ChatLocalWork MCP Hub (v0.4.2)
+# ChatLocalWork MCP Hub (v0.4.3)
 
 ## 목적
 
@@ -226,3 +226,20 @@ Manager의 **MCP 서버 관리** 화면에서 Windows stdio MCP 설정을 입력
 - 따라서 `도구 조회...`는 허용 도구 선택용, `연결 확인...`은 현재 설정의 일치 여부 확인용으로 역할이 분리됩니다.
 
 `McpStdioInspector.Smoke`에서 mock MCP의 `ping` 허용 검증과 존재하지 않는 `missing-tool` 검출을 확인했습니다. 추가로 공식 Everything MCP 1.0.0을 실제 Windows stdio 프로세스로 실행해 13개 도구를 조회하고 `echo`/`get-sum` 존재 확인과 `missing-tool` 누락 검출까지 통과했습니다.
+
+
+## Manager GUI 실제 등록 E2E (v0.4.3)
+
+`manager/McpHubForm.E2E`에서 실제 `McpHubForm`을 WinForms 창으로 띄운 뒤 공식 Everything MCP 1.0.0을 사용해 다음 사용자 흐름을 자동으로 통과시켰습니다.
+
+1. Windows stdio MCP 유형 선택
+2. Node 실행 파일, Everything MCP entry, Workspace 작업 폴더 입력
+3. **도구 조회...** 버튼 클릭
+4. 조회된 13개 도구 중 `echo`, `get-sum` 선택
+5. **연결 확인...** 버튼 클릭 및 허용 도구 존재 검증
+6. **추가 / 저장** 버튼 클릭 및 실행 승인
+7. 임시 Registry와 `%LOCALAPPDATA%` 대신 임시 data root의 비공개 stdio 승인 프로필 저장 내용 검증
+
+운영 UI의 확인·선택 동작은 `WinFormsMcpHubPrompts`가 기존 MessageBox와 CheckedListBox를 그대로 제공합니다. E2E에서만 `IMcpHubPrompts` 테스트 구현을 주입해 모달 대화상자를 자동 응답합니다.
+
+E2E 결과는 `MCP_HUB_FORM_E2E_PASS`, 승인 흐름 3회, 선택 도구 `echo,get-sum`, 조회 도구 13개였습니다. 테스트는 임시 data root를 삭제하며 운영 Registry와 운영 stdio 승인 프로필을 변경하지 않습니다.

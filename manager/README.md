@@ -71,6 +71,10 @@ logs\runner.log
 logs\launcher.log
 ```
 
+## GUI E2E 검증
+
+`manager/McpHubForm.E2E`는 실제 `McpHubForm`을 띄운 뒤 Everything MCP를 사용해 `도구 조회...` → 도구 선택 → `연결 확인...` → `추가 / 저장` 버튼 흐름을 임시 data root에서 검증합니다. 운영 Registry와 비공개 stdio 승인 프로필은 수정하지 않습니다.
+
 ## 빌드
 
 저장소 루트에서:

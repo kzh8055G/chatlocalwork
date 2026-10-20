@@ -8,6 +8,20 @@ ChatLocalWork의 **사용자에게 의미 있는 기능·수정 사항**을 버�
 
 아직 다음 버전 번호를 부여하지 않은 변경을 여기에 추가합니다.
 
+## [0.4.3] - 2026-10-20
+
+### Added
+- 실제 `McpHubForm`을 띄워 버튼 이벤트를 통과시키는 `manager/McpHubForm.E2E` WinForms 종단간 테스트를 추가했습니다.
+- 운영 UI는 기존 MessageBox/도구 선택 창을 그대로 사용하면서 테스트에서만 확인·선택 동작을 주입할 수 있도록 `IMcpHubPrompts` 경계를 추가했습니다.
+
+### Changed
+- `도구 조회...`의 도구 선택 창은 현재 허용 도구를 미리 체크하며, 적용 시 체크된 목록을 정확한 허용 목록으로 반영합니다. 따라서 기존 도구를 선택 해제해 제거하는 것도 가능합니다.
+
+### Verification
+- 공식 Everything MCP 1.0.0으로 실제 Manager 폼에서 `도구 조회...` → `echo/get-sum` 선택 → `연결 확인...`(13개 도구) → 실행 승인 → `추가 / 저장` 흐름을 자동 E2E로 통과했습니다.
+- 임시 data root의 Registry와 비공개 stdio 승인 프로필에 `everything_gui_test`, `echo/get-sum`, 승인 상태, 실행 파일/인수/작업 폴더가 정확히 저장되는 것을 검증했습니다. 운영 Registry와 `%LOCALAPPDATA%\\ChatLocalWork\\private\\mcp-stdio-profiles.json`은 변경되지 않았습니다.
+- Manager v0.4.3 Release 빌드 경고 0 / 오류 0, Everything inspector 스모크 통과, 새 Manager PID 39848 시작을 확인했습니다. 이전 Release는 `manager-before-v0.4.3-20261020`에 백업했습니다.
+
 ## [0.4.2] - 2026-10-20
 
 ### Added

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../ChatLocalWork.Manager/McpHubForm.cs" Link="McpHubForm.cs" />
+    <Compile Include="../ChatLocalWork.Manager/McpHubPrompts.cs" Link="McpHubPrompts.cs" />
+    <Compile Include="../ChatLocalWork.Manager/McpStdioInspector.cs" Link="McpStdioInspector.cs" />
+    <Compile Include="../ChatLocalWork.Manager/McpStdioProfiles.cs" Link="McpStdioProfiles.cs" />
+    <Compile Include="../ChatLocalWork.Manager/CodexMcpImporter.cs" Link="CodexMcpImporter.cs" />
+  </ItemGroup>
+</Project>

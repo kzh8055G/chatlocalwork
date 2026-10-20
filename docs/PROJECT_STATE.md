@@ -406,3 +406,14 @@ timeoutMs
 - `McpStdioInspector.Smoke`에서 `ping` 검증 성공과 `missing-tool` 누락 검출을 확인했습니다. 공식 Everything MCP 1.0.0에서도 13개 도구 조회, `echo`/`get-sum` 존재 확인, `missing-tool` 누락 검출을 통과했습니다.
 - Manager v0.4.2 Release 빌드는 경고 0 / 오류 0이며, 이전 v0.4.1 Release를 `%LOCALAPPDATA%\ChatLocalWork\runtime\diagnostics\manager-before-v0.4.2-20261020`에 백업한 뒤 새 Manager PID 35048로 시작했습니다.
 - 실제 GUI에서 사용자가 Everything MCP를 입력하고 버튼을 직접 누르는 수동 UI E2E는 아직 남아 있습니다.
+
+
+### Manager GUI 실제 stdio 등록 E2E v0.4.3 (2026-10-20)
+
+- `McpHubForm`의 실제 버튼 이벤트를 검증하기 위해 `manager/McpHubForm.E2E`를 추가했습니다.
+- 공식 Everything MCP 1.0.0을 대상으로 **도구 조회... → echo/get-sum 선택 → 연결 확인... → 실행 승인 → 추가 / 저장** 흐름을 실제 WinForms 폼에서 통과했습니다.
+- 연결 확인에서는 13개 도구를 조회했고 `echo`, `get-sum`이 모두 존재함을 확인했습니다.
+- 임시 Registry와 비공개 stdio 프로필에 서버 ID `everything_gui_test`, enabled=true, transport=`windowsStdio`, 승인 상태, Node 실행 파일, Everything entry + `stdio` 인수, Workspace cwd, `echo/get-sum` 허용 목록이 정확히 저장되는 것을 검증했습니다.
+- GUI 테스트는 임시 data root만 사용합니다. 검증 직후 운영 `mcp_list_servers`는 기존 REA + 비활성 `node_repl` 상태였고 운영 `%LOCALAPPDATA%\ChatLocalWork\private\mcp-stdio-profiles.json`도 계속 존재하지 않았습니다.
+- 도구 선택 UI는 현재 허용 도구를 미리 체크하고, 적용 시 체크 상태 전체를 허용 목록으로 반영하도록 개선했습니다. 따라서 기존 도구를 선택 해제해 제거할 수 있습니다.
+- Manager v0.4.3 Release 빌드 경고 0 / 오류 0, Everything inspector 스모크 및 GUI E2E 통과 후 운영 Manager를 PID 39848로 시작했습니다. 이전 Release는 `manager-before-v0.4.3-20261020`에 백업했습니다.
